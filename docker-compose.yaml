@@ -1,15 +1,16 @@
 services:
   db:
     image: postgres:17
-    container_name: postgres_db
+    container_name: tu_vcs_db
     restart: always
     environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: mydatabase
+      POSTGRES_USER: vcs_user
+      POSTGRES_PASSWORD: vcs_password
+      POSTGRES_DB: vcs_db
     ports:
       - "5432:5432"
     volumes:
+      - ./db_scripts/example.sql:/docker-entrypoint-initdb.d/init.sql
       - postgres_data:/var/lib/postgresql/data
 
 volumes:
