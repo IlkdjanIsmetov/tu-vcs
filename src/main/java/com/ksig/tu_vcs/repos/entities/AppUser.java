@@ -14,7 +14,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "app_user")
+@Table(name = "app_user", schema = "vcs")
 public class AppUser {
 
     @Id

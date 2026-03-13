@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./dbScripts:/docker-entrypoint-initdb.d
+      - ./db_scripts:/docker-entrypoint-initdb.d
       - postgres_data:/var/lib/postgresql/data
   keycloak-db:
     image: postgres:15
