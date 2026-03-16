@@ -91,3 +91,6 @@ CREATE TABLE vcs.change_request_item
     file_size BIGINT,
     checksum VARCHAR(64)
 );
+
+
+insert into vcs.app_user (id, username, email) values ('123e4567-e89b-12d3-a456-426614174000', 'fakeUser', 'fake@fake.com');
