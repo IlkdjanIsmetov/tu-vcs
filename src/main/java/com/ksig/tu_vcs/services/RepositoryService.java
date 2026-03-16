@@ -6,23 +6,34 @@ import com.ksig.tu_vcs.repos.ItemRevisionRepository;
 import com.ksig.tu_vcs.repos.RepositoryMemberRepository;
 import com.ksig.tu_vcs.repos.RepositoryRepository;
 import com.ksig.tu_vcs.repos.RevisionRepository;
-import com.ksig.tu_vcs.repos.entities.Repository;
-import com.ksig.tu_vcs.repos.entities.RepositoryMember;
-import com.ksig.tu_vcs.repos.entities.Revision;
+import com.ksig.tu_vcs.repos.entities.*;
+import com.ksig.tu_vcs.repos.entities.enums.Action;
+import com.ksig.tu_vcs.repos.entities.enums.ItemType;
 import com.ksig.tu_vcs.repos.entities.enums.Role;
+import com.ksig.tu_vcs.services.exceptions.CommitException;
+import com.ksig.tu_vcs.services.views.ItemView;
 import com.ksig.tu_vcs.services.views.RepositoryView;
 import com.ksig.tu_vcs.utils.UserContextUtil;
 import jakarta.transaction.Transactional;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 
 @Service
 public class RepositoryService {
+    //TODO move somewhere else later
+    private static final String ROOT_DOWNLOAD_PATH = "/home/djani/testdir";
+
     private final RepositoryRepository repositoryRepository;
     private final RepositoryMemberRepository repositoryMemberRepository;
     private final UserContextUtil userContextUtil;
@@ -43,17 +54,18 @@ public class RepositoryService {
 
     @Transactional
     public Repository createRepository(RepositoryView view) {
+        AppUser currentUser = userContextUtil.getCurrentUser();
         Repository repository = new Repository();
         repository.setName(view.getRepositoryName());
         repository.setDescription(view.getDescription());
-        repository.setOwner(userContextUtil.getCurrentUser());
+        repository.setOwner(currentUser);
         repository.setRequiresApprovalByDefault(true);
 
         repositoryRepository.save(repository);
 
         RepositoryMember member = new RepositoryMember();
         member.setRepository(repository);
-        member.setUser(userContextUtil.getCurrentUser());
+        member.setUser(currentUser);
         member.setRole(Role.MASTER);
 
         repositoryMemberRepository.save(member);
@@ -62,18 +74,69 @@ public class RepositoryService {
     }
 
     @Transactional
-    public String commitDirectly(UUID repositoryId, List<String> path, List<MultipartFile> files, String message) {
-        try {
+    public String commitDirectly(UUID repositoryId, List<ItemView> items, List<MultipartFile> files, String message) {
+        AppUser currentUser = userContextUtil.getCurrentUser();
+        RepositoryMember currentMember = repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId()).orElseThrow();
+        if (!currentMember.canCommit()) {
+            throw new AccessDeniedException("You cannot commit to this repository.");
+        }
 
-        } catch (Exception e) {
+        Revision revision = createRevision(repositoryId, message, currentUser);
+        //правя листа към мап с ключ името на файла, като разчитам че клиента ще опише връзките в ItemView
+        Map<String, MultipartFile> fileMap = files.stream()
+                .collect(Collectors.toMap(MultipartFile::getOriginalFilename, file -> file));
+
+        //TODO finish this
+        for (ItemView item : items) {
+            if (item.getItemType().equals(ItemType.FILE)) {
+                switch (item.getAction()) {
+                    case ADD: addFile(repositoryId, item, fileMap.get(item.getFileRef()), revision); break;
+                    case MODIFY: break;
+                    case DELETE: break;
+                }
+            }
+            if (item.getItemType().equals(ItemType.DIRECTORY)) {
+                switch (item.getAction()) {
+                    case ADD: break;
+                    case MODIFY: break;
+                    case DELETE: break;
+                }
+            }
         }
         return "OK";
     }
 
-    private Revision createRevision(UUID repositoryId, String message) {
+    private void addFile(UUID repositoryId ,ItemView itemView, MultipartFile file, Revision revision) {
+        Item item = new Item();
+        item.setRepository(repositoryRepository.getReferenceById(repositoryId));
+        item.setItemType(ItemType.FILE);
+        item.setPath(itemView.getPath());
+        item = itemRepository.save(item);
+        String storageKey = downloadFile(file);
+        ItemRevision itemRevision = new ItemRevision();
+        itemRevision.setItem(item);
+        itemRevision.setAction(Action.ADD);
+        itemRevision.setRevision(revision);
+        itemRevision.setChecksum(itemView.getChecksum());
+        itemRevision.setFileSize(file.getSize());
+        itemRevision.setStorageKey(storageKey);
+        itemRevisionRepository.save(itemRevision);
+    }
+
+    private String downloadFile(MultipartFile file) {
+       try {
+           String uuid = UUID.randomUUID().toString();
+           Files.copy(file.getInputStream(), Path.of(ROOT_DOWNLOAD_PATH).resolve(uuid));
+           return uuid;
+       } catch (IOException e) {
+           throw new CommitException("Could not download file.");
+       }
+    }
+
+    private Revision createRevision(UUID repositoryId, String message, AppUser currentUser) {
         Revision revision = new Revision();
         revision.setRepository(repositoryRepository.getReferenceById(repositoryId));
-        revision.setAuthor(userContextUtil.getCurrentUser());
+        revision.setAuthor(currentUser);
         revision.setMessage(message);
         Optional<Revision> previousRevision = revisionRepository.findLatestRevision(repositoryId);
         Long revisionNumber;

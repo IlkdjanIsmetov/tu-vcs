@@ -27,4 +27,8 @@ public class RepositoryMember {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;
+
+    public boolean canCommit() {
+        return role.equals(Role.MASTER) || role.equals(Role.CONTRIBUTOR);
+    }
 }
