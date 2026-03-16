@@ -1,9 +1,7 @@
 package com.ksig.tu_vcs.repos.entities;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.ksig.tu_vcs.repos.entities.enums.SystemRole;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -24,6 +22,10 @@ public class AppUser {
     private String username;
 
     private String email;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private SystemRole systemRole;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

@@ -18,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Security config that creates a fake JWT token
@@ -49,6 +50,7 @@ public class TestSecurityConfig {
                 Jwt jwt = Jwt.withTokenValue("mock-test-token")
                         .header("alg", "none")
                         .claim("sub", TEST_USER_UUID)
+                        .claim("roles", List.of("ADMIN"))
                         .issuedAt(Instant.now())
                         .expiresAt(Instant.now().plusSeconds(3600))
                         .build();
