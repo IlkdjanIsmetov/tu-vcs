@@ -1,5 +1,6 @@
 package com.ksig.tu_vcs.repos.entities;
 
+import com.ksig.tu_vcs.repos.entities.enums.Role;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,11 +16,15 @@ public class RepositoryMember {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "repository_id")
-    private UUID repositoryId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "repository_id", nullable = false)
+    private Repository repository;
 
-    @Column(name = "user_id")
-    private UUID userID;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private AppUser user;
 
-    private String role;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Role role;
 }

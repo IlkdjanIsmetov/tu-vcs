@@ -15,7 +15,7 @@ CREATE TABLE vcs.repository
     name                         VARCHAR(255) UNIQUE NOT NULL,
     description                  TEXT,
     owner_id                     UUID                REFERENCES vcs.app_user (id) ON DELETE SET NULL,
-    requires_approval_by_default BOOLEAN                  DEFAULT TRUE,
+    requires_approval_by_default BOOLEAN                  DEFAULT FALSE,
     created_at                   TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

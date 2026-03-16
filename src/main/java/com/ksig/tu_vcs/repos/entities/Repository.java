@@ -17,15 +17,17 @@ public class Repository {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(nullable = false, unique = true)
     private String name;
 
     private String description;
 
-    @Column(name = "owner_id")
-    private UUID ownerID;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private AppUser owner;
 
     @Column(name = "requires_approval_by_default")
-    private Boolean requiresApprovalByDefault;
+    private Boolean requiresApprovalByDefault = false;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

@@ -17,11 +17,7 @@ public class RepositoryController {
 
     @PostMapping
     public Repository createRepository(@RequestBody RepositoryView view) {
-        return repositoryService.createRepository(
-                view.getRepositoryName(),
-                view.getDescription(),
-                view.getOwnerId()
-        );
+        return repositoryService.createRepository(view);
     }
 
 
