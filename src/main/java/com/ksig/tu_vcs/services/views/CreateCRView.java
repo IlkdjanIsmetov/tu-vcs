@@ -9,6 +9,7 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor
 public class CreateCRView {
+    private String tittle;
     private long baseRevisionNUmber;
     private String description;
 }
