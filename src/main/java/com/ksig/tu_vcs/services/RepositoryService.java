@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 @Service
 public class RepositoryService {
     //TODO move somewhere else later
-    private static final String ROOT_DOWNLOAD_PATH = "/home/djani/testdir";
+    private static final String ROOT_DOWNLOAD_PATH = System.getProperty("user.home") + "/tuVCS_TEST_STORAGE/";
 
     private final RepositoryRepository repositoryRepository;
     private final RepositoryMemberRepository repositoryMemberRepository;
