@@ -72,14 +72,19 @@ public class RepositoryService {
     }
 
     public List<ItemOutView> fetchLatestRevision(UUID repositoryId) {
+        AppUser currentUser = userContextUtil.getCurrentUser();
+        Optional<RepositoryMember> currentMember = repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
+        if (currentMember.isEmpty()) {
+            throw new AccessDeniedException("You do not have access to this repository.");
+        }
         return itemRevisionRepository.findLatestItemsForRepo(repositoryId);
     }
 
     @Transactional
     public String commitDirectly(UUID repositoryId, List<ItemInView> items, List<MultipartFile> files, String message) {
         AppUser currentUser = userContextUtil.getCurrentUser();
-        RepositoryMember currentMember = repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId()).orElseThrow();
-        if (!currentMember.canCommit()) {
+        Optional<RepositoryMember> currentMember = repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
+        if (currentMember.isEmpty() || !currentMember.get().canCommit()) {
             throw new AccessDeniedException("You cannot commit to this repository.");
         }
 
@@ -89,7 +94,6 @@ public class RepositoryService {
         Map<String, MultipartFile> fileMap = files.stream()
                 .collect(Collectors.toMap(MultipartFile::getOriginalFilename, file -> file));
 
-        //TODO finish this
         for (ItemInView item : items) {
             if (item.getItemType().equals(ItemType.FILE)) {
                 switch (item.getAction()) {

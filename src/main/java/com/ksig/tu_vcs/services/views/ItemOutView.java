@@ -11,5 +11,5 @@ public interface ItemOutView {
     UUID getRevisionId();
     Long getRevisionNumber();
     String getChecksum();
-    UUID getStorageKey();
+    String getStorageKey();
 }
