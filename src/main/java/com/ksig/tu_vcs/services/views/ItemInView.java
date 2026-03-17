@@ -7,7 +7,7 @@ import lombok.Data;
 import java.util.UUID;
 
 @Data
-public class ItemView {
+public class ItemInView {
     private UUID itemId;
     private String path;
     private ItemType itemType;

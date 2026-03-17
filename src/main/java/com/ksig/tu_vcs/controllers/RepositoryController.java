@@ -2,7 +2,8 @@ package com.ksig.tu_vcs.controllers;
 
 import com.ksig.tu_vcs.repos.entities.Repository;
 import com.ksig.tu_vcs.services.RepositoryService;
-import com.ksig.tu_vcs.services.views.ItemView;
+import com.ksig.tu_vcs.services.views.ItemInView;
+import com.ksig.tu_vcs.services.views.ItemOutView;
 import com.ksig.tu_vcs.services.views.RepositoryView;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,9 +29,14 @@ public class RepositoryController {
     }
 
 
-    @PostMapping(value = "/{repositoryId}/commit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> commit(@PathVariable UUID repositoryId, @RequestPart("paths") List<ItemView> items,
+    @PostMapping(path = "/{repositoryId}/commit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> commit(@PathVariable UUID repositoryId, @RequestPart("paths") List<ItemInView> items,
                                          @RequestPart("files") List<MultipartFile> files, @RequestParam("message")  String message) {
         return ResponseEntity.ok(repositoryService.commitDirectly(repositoryId, items, files, message));
+    }
+
+    @GetMapping("/{repositoryId}/fetch")
+    public ResponseEntity<List<ItemOutView>> fetchItmes(@RequestParam UUID repositoryId) {
+        return ResponseEntity.ok(repositoryService.fetchLatestRevision(repositoryId));
     }
 }

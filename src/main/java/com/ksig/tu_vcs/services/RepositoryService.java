@@ -11,7 +11,8 @@ import com.ksig.tu_vcs.repos.entities.enums.Action;
 import com.ksig.tu_vcs.repos.entities.enums.ItemType;
 import com.ksig.tu_vcs.repos.entities.enums.Role;
 import com.ksig.tu_vcs.services.exceptions.CommitException;
-import com.ksig.tu_vcs.services.views.ItemView;
+import com.ksig.tu_vcs.services.views.ItemInView;
+import com.ksig.tu_vcs.services.views.ItemOutView;
 import com.ksig.tu_vcs.services.views.RepositoryView;
 import com.ksig.tu_vcs.utils.UserContextUtil;
 import jakarta.transaction.Transactional;
@@ -22,10 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -73,8 +71,12 @@ public class RepositoryService {
         return repository;
     }
 
+    public List<ItemOutView> fetchLatestRevision(UUID repositoryId) {
+        return itemRevisionRepository.findLatestItemsForRepo(repositoryId);
+    }
+
     @Transactional
-    public String commitDirectly(UUID repositoryId, List<ItemView> items, List<MultipartFile> files, String message) {
+    public String commitDirectly(UUID repositoryId, List<ItemInView> items, List<MultipartFile> files, String message) {
         AppUser currentUser = userContextUtil.getCurrentUser();
         RepositoryMember currentMember = repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId()).orElseThrow();
         if (!currentMember.canCommit()) {
@@ -88,7 +90,7 @@ public class RepositoryService {
                 .collect(Collectors.toMap(MultipartFile::getOriginalFilename, file -> file));
 
         //TODO finish this
-        for (ItemView item : items) {
+        for (ItemInView item : items) {
             if (item.getItemType().equals(ItemType.FILE)) {
                 switch (item.getAction()) {
                     case ADD: addFile(repositoryId, item, fileMap.get(item.getFileRef()), revision); break;
@@ -107,48 +109,48 @@ public class RepositoryService {
         return "OK";
     }
 
-    private void addFile(UUID repositoryId ,ItemView itemView, MultipartFile file, Revision revision) {
+    private void addFile(UUID repositoryId , ItemInView itemInView, MultipartFile file, Revision revision) {
         Item item = new Item();
         item.setRepository(repositoryRepository.getReferenceById(repositoryId));
         item.setItemType(ItemType.FILE);
-        item.setPath(itemView.getPath());
+        item.setPath(itemInView.getPath());
         item = itemRepository.save(item);
         String storageKey = saveFileToStorage(file);
         ItemRevision itemRevision = new ItemRevision();
         itemRevision.setItem(item);
         itemRevision.setAction(Action.ADD);
         itemRevision.setRevision(revision);
-        itemRevision.setChecksum(itemView.getChecksum());
+        itemRevision.setChecksum(itemInView.getChecksum());
         itemRevision.setFileSize(file.getSize());
         itemRevision.setStorageKey(storageKey);
         itemRevisionRepository.save(itemRevision);
     }
 
-    private void modifyFile(ItemView itemView, MultipartFile file, Revision revision) {
+    private void modifyFile(ItemInView itemInView, MultipartFile file, Revision revision) {
         String storageKey = saveFileToStorage(file);
         ItemRevision itemRevision = new ItemRevision();
-        itemRevision.setItem(itemRepository.getReferenceById(itemView.getItemId()));
+        itemRevision.setItem(itemRepository.getReferenceById(itemInView.getItemId()));
         itemRevision.setAction(Action.MODIFY);
         itemRevision.setRevision(revision);
-        itemRevision.setChecksum(itemView.getChecksum());
+        itemRevision.setChecksum(itemInView.getChecksum());
         itemRevision.setFileSize(file.getSize());
         itemRevision.setStorageKey(storageKey);
         itemRevisionRepository.save(itemRevision);
     }
 
-    private void deleteFile(ItemView itemView, Revision revision) {
+    private void deleteFile(ItemInView itemInView, Revision revision) {
         ItemRevision itemRevision = new ItemRevision();
-        itemRevision.setItem(itemRepository.getReferenceById(itemView.getItemId()));
+        itemRevision.setItem(itemRepository.getReferenceById(itemInView.getItemId()));
         itemRevision.setAction(Action.DELETE);
         itemRevision.setRevision(revision);
         itemRevisionRepository.save(itemRevision);
     }
 
-    private void addDir(UUID repositoryId, ItemView itemView, Revision revision) {
+    private void addDir(UUID repositoryId, ItemInView itemInView, Revision revision) {
         Item item = new Item();
         item.setRepository(repositoryRepository.getReferenceById(repositoryId));
         item.setItemType(ItemType.DIRECTORY);
-        item.setPath(itemView.getPath());
+        item.setPath(itemInView.getPath());
         item = itemRepository.save(item);
         ItemRevision itemRevision = new ItemRevision();
         itemRevision.setItem(item);
@@ -157,9 +159,9 @@ public class RepositoryService {
         itemRevisionRepository.save(itemRevision);
     }
 
-    private void deleteDir(ItemView itemView, Revision revision) {
+    private void deleteDir(ItemInView itemInView, Revision revision) {
         ItemRevision itemRevision = new ItemRevision();
-        itemRevision.setItem(itemRepository.getReferenceById(itemView.getItemId()));
+        itemRevision.setItem(itemRepository.getReferenceById(itemInView.getItemId()));
         itemRevision.setAction(Action.DELETE);
         itemRevision.setRevision(revision);
         itemRevisionRepository.save(itemRevision);
