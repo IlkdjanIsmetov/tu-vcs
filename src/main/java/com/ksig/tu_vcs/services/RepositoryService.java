@@ -81,6 +81,7 @@ public class RepositoryService {
             throw new AccessDeniedException("You cannot commit to this repository.");
         }
 
+        //първо правим нов ревижън
         Revision revision = createRevision(repositoryId, message, currentUser);
         //правя листа към мап с ключ името на файла, като разчитам че клиента ще опише връзките в ItemView
         Map<String, MultipartFile> fileMap = files.stream()
@@ -91,15 +92,15 @@ public class RepositoryService {
             if (item.getItemType().equals(ItemType.FILE)) {
                 switch (item.getAction()) {
                     case ADD: addFile(repositoryId, item, fileMap.get(item.getFileRef()), revision); break;
-                    case MODIFY: break;
-                    case DELETE: break;
+                    case MODIFY: modifyFile(item, fileMap.get(item.getFileRef()), revision); break;
+                    case DELETE: deleteFile(item, revision); break;
                 }
             }
             if (item.getItemType().equals(ItemType.DIRECTORY)) {
                 switch (item.getAction()) {
-                    case ADD: break;
-                    case MODIFY: break;
-                    case DELETE: break;
+                    case ADD: addDir(repositoryId, item, revision); break;
+//                    case MODIFY: break; май няма как да е модифайд
+                    case DELETE: deleteDir(item, revision); break;
                 }
             }
         }
@@ -112,7 +113,7 @@ public class RepositoryService {
         item.setItemType(ItemType.FILE);
         item.setPath(itemView.getPath());
         item = itemRepository.save(item);
-        String storageKey = downloadFile(file);
+        String storageKey = saveFileToStorage(file);
         ItemRevision itemRevision = new ItemRevision();
         itemRevision.setItem(item);
         itemRevision.setAction(Action.ADD);
@@ -123,7 +124,48 @@ public class RepositoryService {
         itemRevisionRepository.save(itemRevision);
     }
 
-    private String downloadFile(MultipartFile file) {
+    private void modifyFile(ItemView itemView, MultipartFile file, Revision revision) {
+        String storageKey = saveFileToStorage(file);
+        ItemRevision itemRevision = new ItemRevision();
+        itemRevision.setItem(itemRepository.getReferenceById(itemView.getItemId()));
+        itemRevision.setAction(Action.MODIFY);
+        itemRevision.setRevision(revision);
+        itemRevision.setChecksum(itemView.getChecksum());
+        itemRevision.setFileSize(file.getSize());
+        itemRevision.setStorageKey(storageKey);
+        itemRevisionRepository.save(itemRevision);
+    }
+
+    private void deleteFile(ItemView itemView, Revision revision) {
+        ItemRevision itemRevision = new ItemRevision();
+        itemRevision.setItem(itemRepository.getReferenceById(itemView.getItemId()));
+        itemRevision.setAction(Action.DELETE);
+        itemRevision.setRevision(revision);
+        itemRevisionRepository.save(itemRevision);
+    }
+
+    private void addDir(UUID repositoryId, ItemView itemView, Revision revision) {
+        Item item = new Item();
+        item.setRepository(repositoryRepository.getReferenceById(repositoryId));
+        item.setItemType(ItemType.DIRECTORY);
+        item.setPath(itemView.getPath());
+        item = itemRepository.save(item);
+        ItemRevision itemRevision = new ItemRevision();
+        itemRevision.setItem(item);
+        itemRevision.setAction(Action.ADD);
+        itemRevision.setRevision(revision);
+        itemRevisionRepository.save(itemRevision);
+    }
+
+    private void deleteDir(ItemView itemView, Revision revision) {
+        ItemRevision itemRevision = new ItemRevision();
+        itemRevision.setItem(itemRepository.getReferenceById(itemView.getItemId()));
+        itemRevision.setAction(Action.DELETE);
+        itemRevision.setRevision(revision);
+        itemRevisionRepository.save(itemRevision);
+    }
+
+    private String saveFileToStorage(MultipartFile file) {
        try {
            String uuid = UUID.randomUUID().toString();
            Files.copy(file.getInputStream(), Path.of(ROOT_DOWNLOAD_PATH).resolve(uuid));
