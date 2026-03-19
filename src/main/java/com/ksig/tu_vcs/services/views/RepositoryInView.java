@@ -8,14 +8,14 @@ import java.util.UUID;
 
 @Getter
 @NoArgsConstructor
-public class RepositoryView {
+public class RepositoryInView {
     private String repositoryName;
     private String description;
     private UUID ownerId;
     private boolean requiresApprovalByDefault;
 
-    public static RepositoryView fromEntity(Repository entity) {
-        RepositoryView view = new RepositoryView();
+    public static RepositoryInView fromEntity(Repository entity) {
+        RepositoryInView view = new RepositoryInView();
         view.repositoryName = entity.getName();
         view.description = entity.getDescription();
         view.ownerId = entity.getOwner().getId();

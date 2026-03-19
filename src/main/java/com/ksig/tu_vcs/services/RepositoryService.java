@@ -13,7 +13,8 @@ import com.ksig.tu_vcs.repos.entities.enums.Role;
 import com.ksig.tu_vcs.services.exceptions.CommitException;
 import com.ksig.tu_vcs.services.views.ItemInView;
 import com.ksig.tu_vcs.services.views.ItemOutView;
-import com.ksig.tu_vcs.services.views.RepositoryView;
+import com.ksig.tu_vcs.services.views.RepositoryInView;
+import com.ksig.tu_vcs.services.views.RepositoryOutView;
 import com.ksig.tu_vcs.utils.UserContextUtil;
 import jakarta.transaction.Transactional;
 import org.springframework.security.access.AccessDeniedException;
@@ -51,7 +52,7 @@ public class RepositoryService {
     }
 
     @Transactional
-    public Repository createRepository(RepositoryView view) {
+    public RepositoryOutView createRepository(RepositoryInView view) {
         AppUser currentUser = userContextUtil.getCurrentUser();
         Repository repository = new Repository();
         repository.setName(view.getRepositoryName());
@@ -59,7 +60,7 @@ public class RepositoryService {
         repository.setOwner(currentUser);
         repository.setRequiresApprovalByDefault(true);
 
-        repositoryRepository.save(repository);
+        repository = repositoryRepository.save(repository);
 
         RepositoryMember member = new RepositoryMember();
         member.setRepository(repository);
@@ -67,8 +68,7 @@ public class RepositoryService {
         member.setRole(Role.MASTER);
 
         repositoryMemberRepository.save(member);
-
-        return repository;
+        return RepositoryOutView.fromEntity(repository);
     }
 
     public List<ItemOutView> fetchLatestRevision(UUID repositoryId) {

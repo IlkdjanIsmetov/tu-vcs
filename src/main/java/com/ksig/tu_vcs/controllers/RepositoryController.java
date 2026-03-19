@@ -4,11 +4,13 @@ import com.ksig.tu_vcs.repos.entities.Repository;
 import com.ksig.tu_vcs.services.RepositoryService;
 import com.ksig.tu_vcs.services.views.ItemInView;
 import com.ksig.tu_vcs.services.views.ItemOutView;
-import com.ksig.tu_vcs.services.views.RepositoryView;
+import com.ksig.tu_vcs.services.views.RepositoryInView;
+import com.ksig.tu_vcs.services.views.RepositoryOutView;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.List;
 import java.util.UUID;
@@ -23,9 +25,14 @@ public class RepositoryController {
         this.repositoryService = repositoryService;
     }
 
-    @PostMapping
-    public ResponseEntity<Repository> createRepository(@RequestBody RepositoryView view) {
-        return ResponseEntity.ok(repositoryService.createRepository(view));
+    @PostMapping("/create")
+    public ResponseEntity<RepositoryOutView> createRepository(@RequestBody RepositoryInView view) {
+        RepositoryOutView out = repositoryService.createRepository(view);
+        String repoUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/repositories/" + out.getId())
+                .toUriString();
+        out.setUrl(repoUrl);
+        return ResponseEntity.ok(out);
     }
 
 
