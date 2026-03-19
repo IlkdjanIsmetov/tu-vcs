@@ -37,13 +37,13 @@ public class RepositoryController {
 
 
     @PostMapping(path = "/{repositoryId}/commit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> commit(@PathVariable UUID repositoryId, @RequestPart("paths") List<ItemInView> items,
+    public ResponseEntity<String> commit(@PathVariable("repositoryId") UUID repositoryId, @RequestPart("paths") List<ItemInView> items,
                                          @RequestPart("files") List<MultipartFile> files, @RequestParam("message")  String message) {
         return ResponseEntity.ok(repositoryService.commitDirectly(repositoryId, items, files, message));
     }
 
     @GetMapping("/{repositoryId}/fetch")
-    public ResponseEntity<List<ItemOutView>> fetchItmes(@RequestParam UUID repositoryId) {
+    public ResponseEntity<List<ItemOutView>> fetchItmes(@PathVariable("repositoryId") UUID repositoryId) {
         return ResponseEntity.ok(repositoryService.fetchLatestRevision(repositoryId));
     }
 }

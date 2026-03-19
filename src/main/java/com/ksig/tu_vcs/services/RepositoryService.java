@@ -174,9 +174,13 @@ public class RepositoryService {
     private String saveFileToStorage(MultipartFile file) {
        try {
            String uuid = UUID.randomUUID().toString();
-           Files.copy(file.getInputStream(), Path.of(ROOT_DOWNLOAD_PATH).resolve(uuid));
+           Path downloadFileHere = Path.of(ROOT_DOWNLOAD_PATH).resolve(uuid);
+           Files.createDirectories(downloadFileHere.getParent());
+           Files.copy(file.getInputStream(), downloadFileHere);
            return uuid;
        } catch (IOException e) {
+           System.out.println("!!!!!!!!!!!!!!!!");
+           System.out.println(e.getMessage());
            throw new CommitException("Could not download file.");
        }
     }
