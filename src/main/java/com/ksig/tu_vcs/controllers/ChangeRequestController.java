@@ -6,15 +6,14 @@ import com.ksig.tu_vcs.repos.entities.ChangeRequest;
 import com.ksig.tu_vcs.repos.entities.ChangeRequestItem;
 import com.ksig.tu_vcs.services.ChangeRequestService;
 import com.ksig.tu_vcs.services.views.CreateCRView;
-import com.ksig.tu_vcs.services.views.ItemView;
+import com.ksig.tu_vcs.services.views.ItemInView;
 import com.ksig.tu_vcs.utils.UserContextUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 @Controller
@@ -30,18 +29,36 @@ public class ChangeRequestController {
     }
 
     @PostMapping
-    public ResponseEntity<ChangeRequest> createChangeRequest(@PathVariable ("repositoryId")  UUID repositoryId, @RequestBody CreateCRView view){
+    public ResponseEntity<ChangeRequest> createChangeRequest(@PathVariable("repositoryId") UUID repositoryId, @RequestBody CreateCRView view) {
         AppUser currentUser = userContextUtil.getCurrentUser();
 
-        ChangeRequest changeRequest = changeRequestService.createChangeRequest(repositoryId,currentUser.getId(),view);
+        ChangeRequest changeRequest = changeRequestService.createChangeRequest(repositoryId, currentUser.getId(), view);
         return ResponseEntity.ok(changeRequest);
     }
 
     @PostMapping("/{changeRequestId}/item")
-    public ResponseEntity<ChangeRequestItem> addItem( @PathVariable UUID changeRequestId, @RequestBody ItemView view){
-        ChangeRequestItem item = changeRequestService.addItemToChangeRequest(changeRequestId,view);
+    public ResponseEntity<ChangeRequestItem> addItem(@PathVariable ("changeRequestId") UUID changeRequestId, @RequestBody ItemInView view) {
+        ChangeRequestItem item = changeRequestService.addItemToChangeRequest(changeRequestId, view);
 
         return ResponseEntity.ok(item);
+    }
+
+    @PostMapping("/{changeRequestId}/approve")
+    public ResponseEntity<String> approveChangeRequest(@PathVariable("repositoryId") UUID repositoryId, @PathVariable ("changeRequestId") UUID changeRequestId,
+                                                       @RequestPart("paths") List<ItemInView> items, @RequestPart("files") List<MultipartFile> files,
+                                                       @RequestParam("message") String message){
+        AppUser currentUser = userContextUtil.getCurrentUser();
+
+        changeRequestService.approveChangeRequest(repositoryId,changeRequestId,items,files,message,currentUser);
+
+        return ResponseEntity.ok("Change request approved");
+    }
+
+    @PostMapping("/{changeRequestId}/reject")
+    public ResponseEntity<String> rejectChangeRequest(@PathVariable UUID changeRequestId){
+        changeRequestService.rejectChangeRequest(changeRequestId);
+
+        return ResponseEntity.ok("Change request rejected");
     }
 
 }
