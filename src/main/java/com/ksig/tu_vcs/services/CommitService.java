@@ -25,7 +25,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static com.ksig.tu_vcs.services.RepositoryService.ROOT_DOWNLOAD_PATH;
 
 @Service
 public class CommitService {
@@ -33,6 +32,8 @@ public class CommitService {
     private final ItemRepository itemRepository;
     private final ItemRevisionRepository itemRevisionRepository;
     private final RevisionRepository revisionRepository;
+    //TODO move somewhere else later
+    private static final String ROOT_DOWNLOAD_PATH = System.getProperty("user.home") + "/tuVCS_TEST_STORAGE/";
 
     public CommitService(RepositoryRepository repositoryRepository, ItemRepository itemRepository, ItemRevisionRepository itemRevisionRepository, RevisionRepository revisionRepository) {
         this.repositoryRepository = repositoryRepository;

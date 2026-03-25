@@ -30,25 +30,23 @@ import java.util.stream.Collectors;
 
 @Service
 public class RepositoryService {
-    //TODO move somewhere else later
-    static final String ROOT_DOWNLOAD_PATH = System.getProperty("user.home") + "/tuVCS_TEST_STORAGE/";
+
 
     private final RepositoryRepository repositoryRepository;
     private final RepositoryMemberRepository repositoryMemberRepository;
     private final UserContextUtil userContextUtil;
-    private final RevisionRepository revisionRepository;
-    private final ItemRepository itemRepository;
     private final ItemRevisionRepository itemRevisionRepository;
+    private final CommitService commitService;
+
 
     public RepositoryService(RepositoryRepository repositoryRepository, RepositoryMemberRepository repositoryMemberRepository,
-                             UserContextUtil userContextUtil, RevisionRepository revisionRepository, ItemRepository itemRepository,
-                             ItemRevisionRepository itemRevisionRepository) {
+                             UserContextUtil userContextUtil,
+                             ItemRevisionRepository itemRevisionRepository, CommitService commitService) {
         this.repositoryRepository = repositoryRepository;
         this.repositoryMemberRepository = repositoryMemberRepository;
         this.userContextUtil = userContextUtil;
-        this.revisionRepository = revisionRepository;
-        this.itemRepository = itemRepository;
         this.itemRevisionRepository = itemRevisionRepository;
+        this.commitService = commitService;
     }
 
     @Transactional
@@ -73,7 +71,8 @@ public class RepositoryService {
 
     public List<ItemOutView> fetchLatestRevision(UUID repositoryId) {
         AppUser currentUser = userContextUtil.getCurrentUser();
-        Optional<RepositoryMember> currentMember = repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
+        Optional<RepositoryMember> currentMember =
+                repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
         if (currentMember.isEmpty()) {
             throw new AccessDeniedException("You do not have access to this repository.");
         }
@@ -83,11 +82,12 @@ public class RepositoryService {
     @Transactional
     public String commitDirectly(UUID repositoryId, List<ItemInView> items, List<MultipartFile> files, String message) {
         AppUser currentUser = userContextUtil.getCurrentUser();
-        Optional<RepositoryMember> currentMember = repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
+        Optional<RepositoryMember> currentMember =
+                repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
         if (currentMember.isEmpty() || !currentMember.get().canCommit()) {
             throw new AccessDeniedException("You cannot commit to this repository.");
         }
 
-        return "OK";
+        return commitService.applyChange(repositoryId, items, files, message, currentUser);
     }
 }
