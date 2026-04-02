@@ -1,6 +1,7 @@
 package com.ksig.tu_vcs.services;
 
 
+import com.ksig.tu_vcs.repos.AppUserRepository;
 import com.ksig.tu_vcs.repos.ItemRepository;
 import com.ksig.tu_vcs.repos.ItemRevisionRepository;
 import com.ksig.tu_vcs.repos.RepositoryMemberRepository;
@@ -17,8 +18,10 @@ import com.ksig.tu_vcs.services.views.RepositoryInView;
 import com.ksig.tu_vcs.services.views.RepositoryOutView;
 import com.ksig.tu_vcs.utils.UserContextUtil;
 import jakarta.transaction.Transactional;
+import org.springframework.dao.DataAccessException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -37,16 +40,19 @@ public class RepositoryService {
     private final UserContextUtil userContextUtil;
     private final ItemRevisionRepository itemRevisionRepository;
     private final CommitService commitService;
+    private final AppUserRepository appUserRepository;
 
 
     public RepositoryService(RepositoryRepository repositoryRepository, RepositoryMemberRepository repositoryMemberRepository,
                              UserContextUtil userContextUtil,
-                             ItemRevisionRepository itemRevisionRepository, CommitService commitService) {
+                             ItemRevisionRepository itemRevisionRepository, CommitService commitService,
+                             AppUserRepository appUserRepository) {
         this.repositoryRepository = repositoryRepository;
         this.repositoryMemberRepository = repositoryMemberRepository;
         this.userContextUtil = userContextUtil;
         this.itemRevisionRepository = itemRevisionRepository;
         this.commitService = commitService;
+        this.appUserRepository = appUserRepository;
     }
 
     @Transactional
@@ -69,6 +75,17 @@ public class RepositoryService {
         return RepositoryOutView.fromEntity(repository);
     }
 
+    @Transactional
+    public void deleteRepository(UUID repositoryId) {
+        AppUser currentUser = userContextUtil.getCurrentUser();
+        Optional<RepositoryMember> currentMember =
+                repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
+        if (currentMember.isEmpty() || !currentMember.get().getRole().equals(Role.MASTER)) {
+            throw new AccessDeniedException("You cannot delete this repository.");
+        }
+        repositoryMemberRepository.delete(currentMember.get());
+    }
+
     public List<ItemOutView> fetchLatestRevision(UUID repositoryId) {
         AppUser currentUser = userContextUtil.getCurrentUser();
         Optional<RepositoryMember> currentMember =
@@ -89,5 +106,39 @@ public class RepositoryService {
         }
 
         return commitService.applyChange(repositoryId, items, files, message, currentUser);
+    }
+
+    @Transactional
+    public void addMember(UUID repositoryId, String userName, Role role) {
+        AppUser currentUser = userContextUtil.getCurrentUser();
+        Optional<RepositoryMember> currentMember =
+                repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
+        AppUser userToAdd = appUserRepository.findByUsername(userName).orElseThrow(() -> new DataAccessException(
+                "User not found with username: " + userName) {
+        });
+        if (currentMember.isEmpty() || !currentMember.get().getRole().equals(Role.MASTER)) {
+            throw new AccessDeniedException("You cannot add members to this repository.");
+        }
+        RepositoryMember memberToAdd = new RepositoryMember();
+        memberToAdd.setRepository(repositoryRepository.getReferenceById(repositoryId));
+        memberToAdd.setUser(userToAdd);
+        memberToAdd.setRole(role);
+        repositoryMemberRepository.save(memberToAdd);
+    }
+
+    @Transactional
+    public void kickMember(UUID repositoryId, String userName) {
+        AppUser currentUser = userContextUtil.getCurrentUser();
+        Optional<RepositoryMember> currentMember =
+                repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
+        if (currentMember.isEmpty() || !currentMember.get().getRole().equals(Role.MASTER)) {
+            throw new AccessDeniedException("You cannot kick members from this repository.");
+        }
+        AppUser userToKick = appUserRepository.findByUsername(userName).orElseThrow(() -> new DataAccessException(
+                "User not found with username: " + userName) {
+        });
+        Optional<RepositoryMember> memberToKick =
+                repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, userToKick.getId());
+        repositoryMemberRepository.delete(memberToKick.get());
     }
 }
