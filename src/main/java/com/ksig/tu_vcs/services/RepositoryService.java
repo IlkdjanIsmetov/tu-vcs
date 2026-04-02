@@ -109,12 +109,12 @@ public class RepositoryService {
     }
 
     @Transactional
-    public void addMember(UUID repositoryId, String userName, Role role) {
+    public void addMember(UUID repositoryId, String username, Role role) {
         AppUser currentUser = userContextUtil.getCurrentUser();
         Optional<RepositoryMember> currentMember =
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
-        AppUser userToAdd = appUserRepository.findByUsername(userName).orElseThrow(() -> new DataAccessException(
-                "User not found with username: " + userName) {
+        AppUser userToAdd = appUserRepository.findByUsername(username).orElseThrow(() -> new DataAccessException(
+                "User not found with username: " + username) {
         });
         if (currentMember.isEmpty() || !currentMember.get().getRole().equals(Role.MASTER)) {
             throw new AccessDeniedException("You cannot add members to this repository.");
@@ -127,15 +127,15 @@ public class RepositoryService {
     }
 
     @Transactional
-    public void kickMember(UUID repositoryId, String userName) {
+    public void kickMember(UUID repositoryId, String username) {
         AppUser currentUser = userContextUtil.getCurrentUser();
         Optional<RepositoryMember> currentMember =
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
         if (currentMember.isEmpty() || !currentMember.get().getRole().equals(Role.MASTER)) {
             throw new AccessDeniedException("You cannot kick members from this repository.");
         }
-        AppUser userToKick = appUserRepository.findByUsername(userName).orElseThrow(() -> new DataAccessException(
-                "User not found with username: " + userName) {
+        AppUser userToKick = appUserRepository.findByUsername(username).orElseThrow(() -> new DataAccessException(
+                "User not found with username: " + username) {
         });
         Optional<RepositoryMember> memberToKick =
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, userToKick.getId());

@@ -55,16 +55,16 @@ public class RepositoryController {
     }
 
     @PostMapping("/{repositoryId}/addMember")
-    public ResponseEntity<String> addMember(@PathVariable("repositoryId") UUID repositoryId, @RequestParam("userName") String userName,
+    public ResponseEntity<String> addMember(@PathVariable("repositoryId") UUID repositoryId, @RequestParam("username") String username,
                                        @RequestParam("role")
                                        Role role) {
-        repositoryService.addMember(repositoryId, userName, role);
+        repositoryService.addMember(repositoryId, username, role);
         return ResponseEntity.ok("OK");
     }
 
     @DeleteMapping("/{repositoryId}/kickMember")
-    public ResponseEntity<String> kickMember(@PathVariable("repositoryId") UUID repositoryId, @RequestParam("userName") String userName) {
-        repositoryService.kickMember(repositoryId, userName);
+    public ResponseEntity<String> kickMember(@PathVariable("repositoryId") UUID repositoryId, @RequestParam("username") String username) {
+        repositoryService.kickMember(repositoryId, username);
         return ResponseEntity.ok("OK");
     }
 }
