@@ -33,7 +33,7 @@ public class CommitService {
     private final ItemRevisionRepository itemRevisionRepository;
     private final RevisionRepository revisionRepository;
     //TODO move somewhere else later
-    private static final String ROOT_DOWNLOAD_PATH = System.getProperty("user.home") + "/tuVCS_TEST_STORAGE/";
+    public static final String ROOT_DOWNLOAD_PATH = System.getProperty("user.home") + "/tuVCS_TEST_STORAGE/";
 
     public CommitService(RepositoryRepository repositoryRepository, ItemRepository itemRepository, ItemRevisionRepository itemRevisionRepository, RevisionRepository revisionRepository) {
         this.repositoryRepository = repositoryRepository;

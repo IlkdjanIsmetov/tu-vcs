@@ -41,18 +41,20 @@ public class RepositoryService {
     private final ItemRevisionRepository itemRevisionRepository;
     private final CommitService commitService;
     private final AppUserRepository appUserRepository;
+    private final ConstructRepoService constructRepoService;
 
 
     public RepositoryService(RepositoryRepository repositoryRepository, RepositoryMemberRepository repositoryMemberRepository,
                              UserContextUtil userContextUtil,
                              ItemRevisionRepository itemRevisionRepository, CommitService commitService,
-                             AppUserRepository appUserRepository) {
+                             AppUserRepository appUserRepository, ConstructRepoService constructRepoService) {
         this.repositoryRepository = repositoryRepository;
         this.repositoryMemberRepository = repositoryMemberRepository;
         this.userContextUtil = userContextUtil;
         this.itemRevisionRepository = itemRevisionRepository;
         this.commitService = commitService;
         this.appUserRepository = appUserRepository;
+        this.constructRepoService = constructRepoService;
     }
 
     @Transactional
@@ -140,5 +142,15 @@ public class RepositoryService {
         Optional<RepositoryMember> memberToKick =
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, userToKick.getId());
         repositoryMemberRepository.delete(memberToKick.get());
+    }
+
+    public Path getZippedRepo(UUID repositoryId) throws IOException {
+        AppUser currentUser = userContextUtil.getCurrentUser();
+        Optional<RepositoryMember> currentMember =
+                repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
+        if (currentMember.isEmpty()) {
+            throw new AccessDeniedException("You cannot clone this repository.");
+        }
+        return constructRepoService.constructZipFolder(repositoryId);
     }
 }
