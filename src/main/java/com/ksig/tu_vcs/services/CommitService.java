@@ -12,6 +12,7 @@ import com.ksig.tu_vcs.repos.entities.enums.Action;
 import com.ksig.tu_vcs.repos.entities.enums.ItemType;
 import com.ksig.tu_vcs.services.exceptions.CommitException;
 import com.ksig.tu_vcs.services.views.ItemInView;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,7 +26,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-
+@Slf4j
 @Service
 public class CommitService {
     private final RepositoryRepository repositoryRepository;
@@ -42,7 +43,7 @@ public class CommitService {
         this.revisionRepository = revisionRepository;
     }
 
-    public String applyChange(UUID repositoryId, List<ItemInView> items, List<MultipartFile> files, String message, AppUser currentUser){
+    public String applyChange(UUID repositoryId, List<ItemInView> items, List<MultipartFile> files, String message, AppUser currentUser, String  logId){
         Revision revision = createRevision(repositoryId, message, currentUser);
         //правя листа към мап с ключ името на файла, като разчитам че клиента ще опише връзките в ItemView
         Map<String, MultipartFile> fileMap = files.stream()
@@ -51,8 +52,8 @@ public class CommitService {
         for (ItemInView item : items) {
             if (item.getItemType().equals(ItemType.FILE)) {
                 switch (item.getAction()) {
-                    case ADD: addFile(repositoryId, item, fileMap.get(item.getFileRef()), revision); break;
-                    case MODIFY: modifyFile(item, fileMap.get(item.getFileRef()), revision); break;
+                    case ADD: addFile(repositoryId, item, fileMap.get(item.getFileRef()), revision, logId); break;
+                    case MODIFY: modifyFile(item, fileMap.get(item.getFileRef()), revision, logId); break;
                     case DELETE: deleteFile(item, revision); break;
                 }
             }
@@ -64,16 +65,17 @@ public class CommitService {
                 }
             }
         }
+        log.info("{}: Successfully commited changes", logId);
         return "OK";
     }
 
-    private void addFile(UUID repositoryId , ItemInView itemInView, MultipartFile file, Revision revision) {
+    private void addFile(UUID repositoryId , ItemInView itemInView, MultipartFile file, Revision revision, String logId) {
         Item item = new Item();
         item.setRepository(repositoryRepository.getReferenceById(repositoryId));
         item.setItemType(ItemType.FILE);
         item.setPath(itemInView.getPath());
         item = itemRepository.save(item);
-        String storageKey = saveFileToStorage(file);
+        String storageKey = saveFileToStorage(file,logId);
         ItemRevision itemRevision = new ItemRevision();
         itemRevision.setItem(item);
         itemRevision.setAction(Action.ADD);
@@ -84,8 +86,8 @@ public class CommitService {
         itemRevisionRepository.save(itemRevision);
     }
 
-    private void modifyFile(ItemInView itemInView, MultipartFile file, Revision revision) {
-        String storageKey = saveFileToStorage(file);
+    private void modifyFile(ItemInView itemInView, MultipartFile file, Revision revision, String logId) {
+        String storageKey = saveFileToStorage(file, logId);
         ItemRevision itemRevision = new ItemRevision();
         itemRevision.setItem(itemRepository.getReferenceById(itemInView.getItemId()));
         itemRevision.setAction(Action.MODIFY);
@@ -125,7 +127,7 @@ public class CommitService {
         itemRevisionRepository.save(itemRevision);
     }
 
-    private String saveFileToStorage(MultipartFile file) {
+    private String saveFileToStorage(MultipartFile file, String logId) {
         try {
             String uuid = UUID.randomUUID().toString();
             Path downloadFileHere = Path.of(ROOT_DOWNLOAD_PATH).resolve(uuid);
@@ -133,8 +135,7 @@ public class CommitService {
             Files.copy(file.getInputStream(), downloadFileHere);
             return uuid;
         } catch (IOException e) {
-            System.out.println("!!!!!!!!!!!!!!!!");
-            System.out.println(e.getMessage());
+            log.error("{}: Error downloading file! {}", logId ,e.getMessage());
             throw new CommitException("Could not download file.");
         }
     }

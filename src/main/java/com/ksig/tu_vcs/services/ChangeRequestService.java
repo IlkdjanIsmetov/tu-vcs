@@ -75,8 +75,8 @@ public class ChangeRequestService {
             changeRequest.setStatus(ChangeRequestStatus.CONFLICTED);
             throw new RuntimeException("Conflicted");
         }
-
-        commitService.applyChange(repositoryId,items,files,message,currentUser);
+        //TODO add logId
+        commitService.applyChange(repositoryId,items,files,message,currentUser, "");
 
     }
 

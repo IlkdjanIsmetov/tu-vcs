@@ -9,6 +9,7 @@ import com.ksig.tu_vcs.repos.entities.Revision;
 import com.ksig.tu_vcs.repos.entities.enums.ItemType;
 import com.ksig.tu_vcs.services.views.ItemOutView;
 import com.ksig.tu_vcs.services.views.RepositoryOutView;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import tools.jackson.databind.ObjectMapper;
@@ -22,6 +23,7 @@ import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+@Slf4j
 @Service
 public class ConstructRepoService {
     private static final String TEMP_ZIP_DIR = System.getProperty("user.dir") + "/tuVCS_TEMP_ZIP";
@@ -37,7 +39,7 @@ public class ConstructRepoService {
         this.revisionRepository = revisionRepository;
     }
 
-    public Path constructZipFolder(UUID repositoryId) throws IOException {
+    public Path constructZipFolder(UUID repositoryId, String logId) {
         List<ItemOutView> items = itemRevisionRepository.findLatestItemsForRepo(repositoryId);
         //сортираме item-ите, така че първо да са директориите а после файловете
         items = items.stream().sorted(new Comparator<ItemOutView>() {
@@ -63,19 +65,24 @@ public class ConstructRepoService {
         repoOut.setUrl(repoUrl);
         Path repoRoot = Path.of(TEMP_ZIP_DIR).resolve(repo.getName());
         Path storageDIr = Path.of(CommitService.ROOT_DOWNLOAD_PATH);
-        for (ItemOutView item : items) {
-            if (item.getItemType().equals(ItemType.DIRECTORY)) {
-                Files.createDirectories(repoRoot.resolve(item.getPath()));
+        try {
+            for (ItemOutView item : items) {
+                if (item.getItemType().equals(ItemType.DIRECTORY)) {
+                    Files.createDirectories(repoRoot.resolve(item.getPath()));
+                }
+                if (item.getItemType().equals(ItemType.FILE)) {
+                    Path storedFile = storageDIr.resolve(item.getStorageKey());
+                    Path repoFile = repoRoot.resolve(item.getPath());
+                    Files.copy(storedFile, repoFile);
+                }
             }
-            if (item.getItemType().equals(ItemType.FILE)) {
-                Path storedFile = storageDIr.resolve(item.getStorageKey());
-                Path repoFile = repoRoot.resolve(item.getPath());
-                Files.copy(storedFile, repoFile);
-            }
+            Path zipPath = Path.of(TEMP_ZIP_DIR).resolve(repo.getName() + ".zip");
+            zipDirectory(repoRoot, zipPath, items, repoOut);
+            return zipPath;
+        } catch (IOException e) {
+            log.error("{}: Error creating zipped repo. {}", logId, e.getMessage());
+            throw new RuntimeException("Error while cloning repo!");
         }
-        Path zipPath = Path.of(TEMP_ZIP_DIR).resolve(repo.getName() + ".zip");
-        zipDirectory(repoRoot, zipPath, items, repoOut);
-        return zipPath;
     }
 
     private void zipDirectory(Path sourceDirPath, Path zipFilePath, List<ItemOutView> items, RepositoryOutView repo)

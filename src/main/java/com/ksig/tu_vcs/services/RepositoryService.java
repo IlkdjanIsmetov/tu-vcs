@@ -12,12 +12,15 @@ import com.ksig.tu_vcs.repos.entities.enums.Action;
 import com.ksig.tu_vcs.repos.entities.enums.ItemType;
 import com.ksig.tu_vcs.repos.entities.enums.Role;
 import com.ksig.tu_vcs.services.exceptions.CommitException;
+import com.ksig.tu_vcs.services.exceptions.ResourceAlreadyExistsException;
+import com.ksig.tu_vcs.services.exceptions.ResourceNotFoundException;
 import com.ksig.tu_vcs.services.views.ItemInView;
 import com.ksig.tu_vcs.services.views.ItemOutView;
 import com.ksig.tu_vcs.services.views.RepositoryInView;
 import com.ksig.tu_vcs.services.views.RepositoryOutView;
 import com.ksig.tu_vcs.utils.UserContextUtil;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -30,7 +33,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
-
+@Slf4j
 @Service
 public class RepositoryService {
 
@@ -58,7 +61,11 @@ public class RepositoryService {
     }
 
     @Transactional
-    public RepositoryOutView createRepository(RepositoryInView view) {
+    public RepositoryOutView createRepository(RepositoryInView view, String logId) {
+        if (repositoryRepository.findByName(view.getRepositoryName()).isPresent()) {
+            log.error("{}: Repository with name \"{}\" already exists", logId,view.getRepositoryName());
+            throw new ResourceAlreadyExistsException("Repository with name " + view.getRepositoryName() + " already exists");
+        }
         AppUser currentUser = userContextUtil.getCurrentUser();
         Repository repository = new Repository();
         repository.setName(view.getRepositoryName());
@@ -72,13 +79,13 @@ public class RepositoryService {
         member.setRepository(repository);
         member.setUser(currentUser);
         member.setRole(Role.MASTER);
-
         repositoryMemberRepository.save(member);
+        log.info("{}: Created repository \"{}\" for user \"{}\"", logId, repository.getName(), currentUser.getUsername());
         return RepositoryOutView.fromEntity(repository);
     }
 
     @Transactional
-    public void deleteRepository(UUID repositoryId) {
+    public void deleteRepository(UUID repositoryId, String logId) {
         AppUser currentUser = userContextUtil.getCurrentUser();
         Optional<RepositoryMember> currentMember =
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
@@ -86,6 +93,7 @@ public class RepositoryService {
             throw new AccessDeniedException("You cannot delete this repository.");
         }
         repositoryMemberRepository.delete(currentMember.get());
+        log.info("{}: Deleted repository with id \"{}\"", logId, repositoryId);
     }
 
     public List<ItemOutView> fetchLatestRevision(UUID repositoryId) {
@@ -99,7 +107,7 @@ public class RepositoryService {
     }
 
     @Transactional
-    public String commitDirectly(UUID repositoryId, List<ItemInView> items, List<MultipartFile> files, String message) {
+    public String commitDirectly(UUID repositoryId, List<ItemInView> items, List<MultipartFile> files, String message, String logId) {
         AppUser currentUser = userContextUtil.getCurrentUser();
         Optional<RepositoryMember> currentMember =
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
@@ -107,17 +115,15 @@ public class RepositoryService {
             throw new AccessDeniedException("You cannot commit to this repository.");
         }
 
-        return commitService.applyChange(repositoryId, items, files, message, currentUser);
+        return commitService.applyChange(repositoryId, items, files, message, currentUser, logId);
     }
 
     @Transactional
-    public void addMember(UUID repositoryId, String username, Role role) {
+    public void addMember(UUID repositoryId, String username, Role role, String logId) {
         AppUser currentUser = userContextUtil.getCurrentUser();
         Optional<RepositoryMember> currentMember =
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
-        AppUser userToAdd = appUserRepository.findByUsername(username).orElseThrow(() -> new DataAccessException(
-                "User not found with username: " + username) {
-        });
+        AppUser userToAdd = appUserRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("Username " + username + " not found"));
         if (currentMember.isEmpty() || !currentMember.get().getRole().equals(Role.MASTER)) {
             throw new AccessDeniedException("You cannot add members to this repository.");
         }
@@ -126,31 +132,31 @@ public class RepositoryService {
         memberToAdd.setUser(userToAdd);
         memberToAdd.setRole(role);
         repositoryMemberRepository.save(memberToAdd);
+        log.info("{}: User \"{}\" added member \"{}\" to repository {}", logId, currentUser.getUsername(), username, repositoryId);
     }
 
     @Transactional
-    public void kickMember(UUID repositoryId, String username) {
+    public void kickMember(UUID repositoryId, String username, String logId) {
         AppUser currentUser = userContextUtil.getCurrentUser();
         Optional<RepositoryMember> currentMember =
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
         if (currentMember.isEmpty() || !currentMember.get().getRole().equals(Role.MASTER)) {
             throw new AccessDeniedException("You cannot kick members from this repository.");
         }
-        AppUser userToKick = appUserRepository.findByUsername(username).orElseThrow(() -> new DataAccessException(
-                "User not found with username: " + username) {
-        });
+        AppUser userToKick = appUserRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("Username " + username + " not found"));
         Optional<RepositoryMember> memberToKick =
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, userToKick.getId());
         repositoryMemberRepository.delete(memberToKick.get());
+        log.info("{}: User \"{}\" kicked member \"{}\" from repository {}", logId, currentUser.getUsername(), username, repositoryId);
     }
 
-    public Path getZippedRepo(UUID repositoryId) throws IOException {
+    public Path getZippedRepo(UUID repositoryId, String logId) {
         AppUser currentUser = userContextUtil.getCurrentUser();
         Optional<RepositoryMember> currentMember =
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
         if (currentMember.isEmpty()) {
             throw new AccessDeniedException("You cannot clone this repository.");
         }
-        return constructRepoService.constructZipFolder(repositoryId);
+        return constructRepoService.constructZipFolder(repositoryId, logId);
     }
 }
