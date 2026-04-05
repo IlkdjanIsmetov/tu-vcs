@@ -9,5 +9,5 @@ import java.util.UUID;
 public interface RepositoryMemberRepository extends JpaRepository<RepositoryMember, UUID> {
     Optional<RepositoryMember> findByRepositoryIdAndUserId(UUID repositoryId, UUID userId);
     Optional<RepositoryMember> findByRepositoryNameAndUserUsername(String repositoryName, String userName);
-    Optional<RepositoryMember> findBtRepositoryNameAndUserId(String repositoryName, UUID userId);
+//    Optional<RepositoryMember> findBtRepositoryNameAndUserId(String repositoryName, UUID userId);
 }

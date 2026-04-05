@@ -87,7 +87,7 @@ public class RepositoryController {
     }
 
     @GetMapping("/{repositoryId}/clone")
-    public ResponseEntity<Resource> downloadZippedRepo(@RequestParam("repositoryId") UUID repositoryId, HttpServletRequest request)
+    public ResponseEntity<Resource> downloadZippedRepo(@PathVariable("repositoryId") UUID repositoryId, HttpServletRequest request)
             throws IOException {
         String logId = UUID.randomUUID().toString();
         request.setAttribute("logId", logId);

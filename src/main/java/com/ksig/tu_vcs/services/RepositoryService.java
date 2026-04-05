@@ -2,16 +2,11 @@ package com.ksig.tu_vcs.services;
 
 
 import com.ksig.tu_vcs.repos.AppUserRepository;
-import com.ksig.tu_vcs.repos.ItemRepository;
 import com.ksig.tu_vcs.repos.ItemRevisionRepository;
 import com.ksig.tu_vcs.repos.RepositoryMemberRepository;
 import com.ksig.tu_vcs.repos.RepositoryRepository;
-import com.ksig.tu_vcs.repos.RevisionRepository;
 import com.ksig.tu_vcs.repos.entities.*;
-import com.ksig.tu_vcs.repos.entities.enums.Action;
-import com.ksig.tu_vcs.repos.entities.enums.ItemType;
 import com.ksig.tu_vcs.repos.entities.enums.Role;
-import com.ksig.tu_vcs.services.exceptions.CommitException;
 import com.ksig.tu_vcs.services.exceptions.ResourceAlreadyExistsException;
 import com.ksig.tu_vcs.services.exceptions.ResourceNotFoundException;
 import com.ksig.tu_vcs.services.views.ItemInView;
@@ -21,17 +16,14 @@ import com.ksig.tu_vcs.services.views.RepositoryOutView;
 import com.ksig.tu_vcs.utils.UserContextUtil;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataAccessException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
+
 import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Collectors;
+
 
 @Slf4j
 @Service

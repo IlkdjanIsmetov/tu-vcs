@@ -10,13 +10,17 @@ import com.ksig.tu_vcs.repos.entities.enums.ItemType;
 import com.ksig.tu_vcs.services.views.ItemOutView;
 import com.ksig.tu_vcs.services.views.RepositoryOutView;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import tools.jackson.core.json.JsonFactory;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -26,14 +30,15 @@ import java.util.zip.ZipOutputStream;
 @Slf4j
 @Service
 public class ConstructRepoService {
-    private static final String TEMP_ZIP_DIR = System.getProperty("user.dir") + "/tuVCS_TEMP_ZIP";
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final String TEMP_ZIP_DIR = System.getProperty("user.home") + "/tuVCS_TEMP_ZIP";
+    private final ObjectMapper objectMapper;
     private final RepositoryRepository repositoryRepository;
     private final ItemRevisionRepository itemRevisionRepository;
     private final RevisionRepository revisionRepository;
 
-    public ConstructRepoService(RepositoryRepository repositoryRepository, ItemRevisionRepository itemRevisionRepository,
+    public ConstructRepoService(@Qualifier("autoCloseFalseMapper") ObjectMapper objectMapper, RepositoryRepository repositoryRepository, ItemRevisionRepository itemRevisionRepository,
                                 RevisionRepository revisionRepository) {
+        this.objectMapper = objectMapper;
         this.repositoryRepository = repositoryRepository;
         this.itemRevisionRepository = itemRevisionRepository;
         this.revisionRepository = revisionRepository;
@@ -66,6 +71,7 @@ public class ConstructRepoService {
         Path repoRoot = Path.of(TEMP_ZIP_DIR).resolve(repo.getName());
         Path storageDIr = Path.of(CommitService.ROOT_DOWNLOAD_PATH);
         try {
+            Files.createDirectories(repoRoot);
             for (ItemOutView item : items) {
                 if (item.getItemType().equals(ItemType.DIRECTORY)) {
                     Files.createDirectories(repoRoot.resolve(item.getPath()));
@@ -73,14 +79,14 @@ public class ConstructRepoService {
                 if (item.getItemType().equals(ItemType.FILE)) {
                     Path storedFile = storageDIr.resolve(item.getStorageKey());
                     Path repoFile = repoRoot.resolve(item.getPath());
-                    Files.copy(storedFile, repoFile);
+                    Files.copy(storedFile, repoFile, StandardCopyOption.REPLACE_EXISTING);
                 }
             }
             Path zipPath = Path.of(TEMP_ZIP_DIR).resolve(repo.getName() + ".zip");
             zipDirectory(repoRoot, zipPath, items, repoOut);
             return zipPath;
         } catch (IOException e) {
-            log.error("{}: Error creating zipped repo. {}", logId, e.getMessage());
+            log.error("{}: Error creating zipped repo.", logId, e);
             throw new RuntimeException("Error while cloning repo!");
         }
     }
@@ -122,7 +128,7 @@ public class ConstructRepoService {
             zos.putNextEntry(zipEntry);
             objectMapper.writeValue(zos, repoMeta);
             zos.closeEntry();
-            String itemMeta = "/.tu_vcs_repo/item.json";
+            String itemMeta = "/.tu_vcs_repo/items.json";
             zipEntry = new ZipEntry(itemMeta);
             zos.putNextEntry(zipEntry);
             objectMapper.writeValue(zos, items);
