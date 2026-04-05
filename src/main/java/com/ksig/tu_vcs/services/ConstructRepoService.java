@@ -1,6 +1,5 @@
 package com.ksig.tu_vcs.services;
 
-import com.ksig.tu_vcs.repos.ItemRepository;
 import com.ksig.tu_vcs.repos.ItemRevisionRepository;
 import com.ksig.tu_vcs.repos.RepositoryRepository;
 import com.ksig.tu_vcs.repos.RevisionRepository;
@@ -13,11 +12,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import tools.jackson.core.json.JsonFactory;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -126,7 +123,7 @@ public class ConstructRepoService {
             String repoMeta = "/.tu_vcs_repo/repo.json";
             ZipEntry zipEntry = new ZipEntry(repoMeta);
             zos.putNextEntry(zipEntry);
-            objectMapper.writeValue(zos, repoMeta);
+            objectMapper.writeValue(zos, repo);
             zos.closeEntry();
             String itemMeta = "/.tu_vcs_repo/items.json";
             zipEntry = new ZipEntry(itemMeta);
