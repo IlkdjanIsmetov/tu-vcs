@@ -14,15 +14,18 @@ import com.ksig.tu_vcs.services.views.ItemOutView;
 import com.ksig.tu_vcs.services.views.RepositoryInView;
 import com.ksig.tu_vcs.services.views.RepositoryOutView;
 import com.ksig.tu_vcs.utils.UserContextUtil;
+import jakarta.servlet.Servlet;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -55,7 +58,7 @@ public class RepositoryService {
     @Transactional
     public RepositoryOutView createRepository(RepositoryInView view, String logId) {
         if (repositoryRepository.findByName(view.getRepositoryName()).isPresent()) {
-            log.error("{}: Repository with name \"{}\" already exists", logId,view.getRepositoryName());
+            log.error("{}: Repository with name \"{}\" already exists", logId, view.getRepositoryName());
             throw new ResourceAlreadyExistsException("Repository with name " + view.getRepositoryName() + " already exists");
         }
         AppUser currentUser = userContextUtil.getCurrentUser();
@@ -150,5 +153,36 @@ public class RepositoryService {
             throw new AccessDeniedException("You cannot clone this repository.");
         }
         return constructRepoService.constructZipFolder(repositoryId, logId);
+    }
+
+    private String generateRepositoryUrl(UUID repositoryId) {
+        return ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/repositories/")
+                .path(repositoryId.toString())
+                .toUriString();
+    }
+
+    private RepositoryOutView convertToView(Repository repository) {
+        RepositoryOutView view = RepositoryOutView.fromEntity(repository);
+        view.setUrl(generateRepositoryUrl(repository.getId()));
+        return view;
+    }
+
+    public List<RepositoryOutView> findAllRepositories() {
+        return repositoryRepository.findAll().stream()
+                .map(this::convertToView)
+                .collect(Collectors.toList());
+
+    }
+
+    public List<RepositoryOutView> findUserRepositories(UUID userId) {
+        return repositoryRepository.findByOwnerId(userId).stream()
+                .map(this::convertToView)
+                .collect(Collectors.toList());
+    }
+    public List<RepositoryOutView> searchRepositories(String search){
+        return repositoryRepository.findByNameContainingIgnoreCase(search).stream()
+                .map(this::convertToView)
+                .collect(Collectors.toList());
     }
 }

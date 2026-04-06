@@ -1,5 +1,6 @@
 package com.ksig.tu_vcs.controllers;
 
+import com.ksig.tu_vcs.repos.entities.AppUser;
 import com.ksig.tu_vcs.repos.entities.Repository;
 import com.ksig.tu_vcs.repos.entities.enums.Role;
 import com.ksig.tu_vcs.services.RepositoryService;
@@ -7,6 +8,7 @@ import com.ksig.tu_vcs.services.views.ItemInView;
 import com.ksig.tu_vcs.services.views.ItemOutView;
 import com.ksig.tu_vcs.services.views.RepositoryInView;
 import com.ksig.tu_vcs.services.views.RepositoryOutView;
+import com.ksig.tu_vcs.utils.UserContextUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -26,10 +28,12 @@ import java.util.UUID;
 @RequestMapping("/api/repositories")
 public class RepositoryController {
     private final RepositoryService repositoryService;
+    private final UserContextUtil userContextUtil;
 
 
-    public RepositoryController(RepositoryService repositoryService) {
+    public RepositoryController(RepositoryService repositoryService, UserContextUtil userContextUtil) {
         this.repositoryService = repositoryService;
+        this.userContextUtil = userContextUtil;
     }
 
     @PostMapping("/create")
@@ -98,5 +102,27 @@ public class RepositoryController {
                 .contentType(MediaType.valueOf("application/zip"))
                 .contentLength(fileResource.contentLength())
                 .body(fileResource);
+    }
+    @GetMapping("/all")
+    public  ResponseEntity<List<RepositoryOutView>> showAllRepositories(HttpServletRequest request){
+        String logId = UUID.randomUUID().toString();
+        request.setAttribute("logId", logId);
+        return ResponseEntity.ok(repositoryService.findAllRepositories());
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<List<RepositoryOutView>> getMyRepositories(HttpServletRequest request) {
+        String logId = UUID.randomUUID().toString();
+        request.setAttribute("logId", logId);
+        AppUser currentUser = userContextUtil.getCurrentUser();
+        return ResponseEntity.ok(repositoryService.findUserRepositories(currentUser.getId()));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<RepositoryOutView>> searchRepositories(@RequestParam("q") String search,
+                                                                      HttpServletRequest request){
+        String logId = UUID.randomUUID().toString();
+        request.setAttribute("logId", logId);
+        return ResponseEntity.ok(repositoryService.searchRepositories(search));
     }
 }
