@@ -39,7 +39,7 @@ public class RepositoryController {
         RepositoryOutView out = repositoryService.createRepository(view, logId);
         String repoUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/repositories/" + out.getId())
-                .toUriString();
+                .toUriString(); //*
         out.setUrl(repoUrl);
         return ResponseEntity.ok(out);
     }

@@ -34,7 +34,7 @@ public class ChangeRequestService {
         this.commitService = commitService;
     }
 
-    public ChangeRequest createChangeRequest(UUID repositoryId, UUID userId, CreateCRView view){
+    public ChangeRequest createChangeRequest(UUID repositoryId, UUID userId, CreateCRView view) {
         ChangeRequest changeRequest = new ChangeRequest();
         changeRequest.setRepository(repositoryRepository.getReferenceById(repositoryId));
         changeRequest.setAuthor(appUserRepository.getReferenceById(userId));
@@ -47,11 +47,11 @@ public class ChangeRequestService {
     }
 
     @Transactional
-    public ChangeRequestItem addItemToChangeRequest(UUID changeRequestId, ItemInView view, MultipartFile file){
+    public ChangeRequestItem addItemToChangeRequest(UUID changeRequestId, ItemInView view, MultipartFile file, String logId) {
         ChangeRequest changeRequest = changeRequestRepository.findById(changeRequestId)
-                .orElseThrow(()->new RuntimeException("Change request not found"));
+                .orElseThrow(() -> new RuntimeException("Change request not found"));
 
-        if (changeRequest.getStatus()!=ChangeRequestStatus.PENDING){
+        if (changeRequest.getStatus() != ChangeRequestStatus.PENDING) {
             throw new RuntimeException("Cannot add item to a non-pending change request");
         }
 
@@ -62,13 +62,12 @@ public class ChangeRequestService {
         changeRequestItem.setAction(view.getAction());
 
         if (view.getAction() != Action.DELETE) {
-            String storageKey = commitService.saveFileToStorage(file);
+            String storageKey = commitService.saveFileToStorage(file, logId);
 
             changeRequestItem.setStorageKey(storageKey);
             changeRequestItem.setFileSize(file.getSize());
             changeRequestItem.setChecksum(view.getChecksum());
-        }
-        else {
+        } else {
             changeRequestItem.setStorageKey(null);
             changeRequestItem.setFileSize(0L);
             changeRequestItem.setChecksum(null);
@@ -78,16 +77,16 @@ public class ChangeRequestService {
     }
 
     @Transactional
-    public void approveChangeRequest(UUID repositoryId, UUID changeRequestId, AppUser currentUser){
+    public void approveChangeRequest(UUID repositoryId, UUID changeRequestId, AppUser currentUser) {
         ChangeRequest changeRequest = changeRequestRepository.findById(changeRequestId)
-                .orElseThrow(()->new RuntimeException("Change request not found"));
+                .orElseThrow(() -> new RuntimeException("Change request not found"));
         Revision latestRevision = revisionRepository.findLatestRevision(repositoryId)
                 .orElseThrow();
-        if (!latestRevision.getRevisionNumber().equals(changeRequest.getBaseRevisionNumber())){
+        if (!latestRevision.getRevisionNumber().equals(changeRequest.getBaseRevisionNumber())) {
             changeRequest.setStatus(ChangeRequestStatus.CONFLICTED);
             throw new RuntimeException("Conflicted");
         }
-        Revision  newRevision = commitService.createRevision(repositoryId, changeRequest.getTitle(), currentUser);
+        Revision newRevision = commitService.createRevision(repositoryId, changeRequest.getTitle(), currentUser);
         List<ChangeRequestItem> items = changeRequestItemRepository.findByChangeRequestId(changeRequest.getId());
 
         for (ChangeRequestItem crItem : items) {
@@ -98,9 +97,9 @@ public class ChangeRequestService {
 
     }
 
-    public void rejectChangeRequest(UUID changeRequestId){
+    public void rejectChangeRequest(UUID changeRequestId) {
         ChangeRequest changeRequest = changeRequestRepository.findById(changeRequestId)
-                .orElseThrow(()->new RuntimeException("Change request not found"));
+                .orElseThrow(() -> new RuntimeException("Change request not found"));
 
         changeRequest.setStatus(ChangeRequestStatus.REJECTED);
 

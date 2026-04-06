@@ -151,7 +151,7 @@ public class CommitService {
         itemRevisionRepository.save(itemRevision);
     }
 
-    private String saveFileToStorage(MultipartFile file, String logId) {
+    public String saveFileToStorage(MultipartFile file, String logId) {
         try {
             String uuid = UUID.randomUUID().toString();
             Path downloadFileHere = Path.of(ROOT_DOWNLOAD_PATH).resolve(uuid);
