@@ -5,6 +5,7 @@ import com.ksig.tu_vcs.repos.entities.AppUser;
 import com.ksig.tu_vcs.repos.entities.ChangeRequest;
 import com.ksig.tu_vcs.repos.entities.ChangeRequestItem;
 import com.ksig.tu_vcs.repos.entities.Revision;
+import com.ksig.tu_vcs.repos.entities.enums.Action;
 import com.ksig.tu_vcs.repos.entities.enums.ChangeRequestStatus;
 import com.ksig.tu_vcs.services.views.CreateCRView;
 import com.ksig.tu_vcs.services.views.ItemInView;
@@ -46,7 +47,7 @@ public class ChangeRequestService {
     }
 
     @Transactional
-    public ChangeRequestItem addItemToChangeRequest(UUID changeRequestId, ItemInView view){
+    public ChangeRequestItem addItemToChangeRequest(UUID changeRequestId, ItemInView view, MultipartFile file){
         ChangeRequest changeRequest = changeRequestRepository.findById(changeRequestId)
                 .orElseThrow(()->new RuntimeException("Change request not found"));
 
@@ -59,14 +60,25 @@ public class ChangeRequestService {
         changeRequestItem.setPath(view.getPath());
         changeRequestItem.setItemType(view.getItemType());
         changeRequestItem.setAction(view.getAction());
-        changeRequestItem.setChecksum(view.getChecksum());
-        changeRequestItem.setStorageKey(view.getFileRef());
+
+        if (view.getAction() != Action.DELETE) {
+            String storageKey = commitService.saveFileToStorage(file);
+
+            changeRequestItem.setStorageKey(storageKey);
+            changeRequestItem.setFileSize(file.getSize());
+            changeRequestItem.setChecksum(view.getChecksum());
+        }
+        else {
+            changeRequestItem.setStorageKey(null);
+            changeRequestItem.setFileSize(0L);
+            changeRequestItem.setChecksum(null);
+        }
 
         return changeRequestItemRepository.save(changeRequestItem);
-
     }
 
-    public void approveChangeRequest(UUID repositoryId, UUID changeRequestId, List<ItemInView> items, List<MultipartFile> files, String message, AppUser currentUser){
+    @Transactional
+    public void approveChangeRequest(UUID repositoryId, UUID changeRequestId, AppUser currentUser){
         ChangeRequest changeRequest = changeRequestRepository.findById(changeRequestId)
                 .orElseThrow(()->new RuntimeException("Change request not found"));
         Revision latestRevision = revisionRepository.findLatestRevision(repositoryId)
@@ -75,8 +87,14 @@ public class ChangeRequestService {
             changeRequest.setStatus(ChangeRequestStatus.CONFLICTED);
             throw new RuntimeException("Conflicted");
         }
+        Revision  newRevision = commitService.createRevision(repositoryId, changeRequest.getTitle(), currentUser);
+        List<ChangeRequestItem> items = changeRequestItemRepository.findByChangeRequestId(changeRequest.getId());
 
-        commitService.applyChange(repositoryId,items,files,message,currentUser);
+        for (ChangeRequestItem crItem : items) {
+            commitService.applyChangeFromCr(crItem, newRevision, repositoryId);
+        }
+        changeRequest.setStatus(ChangeRequestStatus.APPROVED);
+        changeRequestRepository.save(changeRequest);
 
     }
 

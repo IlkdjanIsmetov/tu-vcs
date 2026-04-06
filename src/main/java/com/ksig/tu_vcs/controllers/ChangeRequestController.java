@@ -36,21 +36,22 @@ public class ChangeRequestController {
         return ResponseEntity.ok(changeRequest);
     }
 
-    @PostMapping("/{changeRequestId}/item")
-    public ResponseEntity<ChangeRequestItem> addItem(@PathVariable ("changeRequestId") UUID changeRequestId, @RequestBody ItemInView view) {
-        ChangeRequestItem item = changeRequestService.addItemToChangeRequest(changeRequestId, view);
+    @PostMapping(value = "/{changeRequestId}/item", consumes = {"multipart/form-data"})
+    @ResponseBody
+    public ResponseEntity<ChangeRequestItem> addItem(
+            @PathVariable("changeRequestId") UUID changeRequestId,
+            @RequestPart("metadata") ItemInView view,
+            @RequestPart(value = "file", required = false) MultipartFile file) {
 
+        ChangeRequestItem item = changeRequestService.addItemToChangeRequest(changeRequestId, view, file);
         return ResponseEntity.ok(item);
     }
 
     @PostMapping("/{changeRequestId}/approve")
-    public ResponseEntity<String> approveChangeRequest(@PathVariable("repositoryId") UUID repositoryId, @PathVariable ("changeRequestId") UUID changeRequestId,
-                                                       @RequestPart("paths") List<ItemInView> items, @RequestPart("files") List<MultipartFile> files,
-                                                       @RequestParam("message") String message){
+    public ResponseEntity<String> approveChangeRequest(@PathVariable("repositoryId") UUID repositoryId, @PathVariable ("changeRequestId") UUID changeRequestId){
         AppUser currentUser = userContextUtil.getCurrentUser();
 
-        changeRequestService.approveChangeRequest(repositoryId,changeRequestId,items,files,message,currentUser);
-
+        changeRequestService.approveChangeRequest(repositoryId,changeRequestId,currentUser);
         return ResponseEntity.ok("Change request approved");
     }
 

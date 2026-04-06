@@ -4,10 +4,7 @@ import com.ksig.tu_vcs.repos.ItemRepository;
 import com.ksig.tu_vcs.repos.ItemRevisionRepository;
 import com.ksig.tu_vcs.repos.RepositoryRepository;
 import com.ksig.tu_vcs.repos.RevisionRepository;
-import com.ksig.tu_vcs.repos.entities.AppUser;
-import com.ksig.tu_vcs.repos.entities.Item;
-import com.ksig.tu_vcs.repos.entities.ItemRevision;
-import com.ksig.tu_vcs.repos.entities.Revision;
+import com.ksig.tu_vcs.repos.entities.*;
 import com.ksig.tu_vcs.repos.entities.enums.Action;
 import com.ksig.tu_vcs.repos.entities.enums.ItemType;
 import com.ksig.tu_vcs.services.exceptions.CommitException;
@@ -64,6 +61,33 @@ public class CommitService {
             }
         }
         return "OK";
+    }
+    public void applyChangeFromCr(ChangeRequestItem crItem, Revision revision,UUID repoId){
+        Optional<Item> existingItem = itemRepository.findByRepositoryIdAndPath(repoId, crItem.getPath());
+        Item item;
+        if(crItem.getAction()==Action.ADD){
+            if (existingItem.isPresent()) {
+                throw new RuntimeException("Conflict: File already exists at path " + crItem.getPath());
+            }
+            item = new Item();
+            item.setRepository(repositoryRepository.getReferenceById(repoId));
+            item.setPath(crItem.getPath());
+            item.setItemType(crItem.getItemType());
+            item =itemRepository.save(item);
+        }
+        else {
+            item = existingItem.orElseThrow(() ->
+                    new RuntimeException("File not found for " + crItem.getAction()));
+        }
+        ItemRevision itemRevision = new ItemRevision();
+        itemRevision.setItem(item);
+        itemRevision.setRevision(revision);
+        itemRevision.setAction(crItem.getAction());
+        itemRevision.setStorageKey(crItem.getStorageKey());
+        itemRevision.setChecksum(crItem.getChecksum());
+        itemRevision.setFileSize(crItem.getFileSize());
+
+        itemRevisionRepository.save(itemRevision);
     }
 
     private void addFile(UUID repositoryId , ItemInView itemInView, MultipartFile file, Revision revision) {
@@ -124,7 +148,7 @@ public class CommitService {
         itemRevisionRepository.save(itemRevision);
     }
 
-    private String saveFileToStorage(MultipartFile file) {
+    public String saveFileToStorage(MultipartFile file) {
         try {
             String uuid = UUID.randomUUID().toString();
             Path downloadFileHere = Path.of(ROOT_DOWNLOAD_PATH).resolve(uuid);
@@ -138,7 +162,7 @@ public class CommitService {
         }
     }
 
-    private Revision createRevision(UUID repositoryId, String message, AppUser currentUser) {
+    public Revision createRevision(UUID repositoryId, String message, AppUser currentUser) {
         Revision revision = new Revision();
         revision.setRepository(repositoryRepository.getReferenceById(repositoryId));
         revision.setAuthor(currentUser);
