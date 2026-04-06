@@ -11,7 +11,7 @@ public class RepositoryOutView {
     private String name;
     private String description;
     private boolean requireApproval;
-    private Long revision;
+    private long revision;
     private String url;
 
     public static RepositoryOutView fromEntity(Repository entity) {
