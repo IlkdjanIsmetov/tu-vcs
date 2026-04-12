@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -37,4 +38,15 @@ public interface ItemRevisionRepository extends JpaRepository<ItemRevision, UUID
           )
     """, nativeQuery = true)
     List<ItemOutView> findLatestItemsForRepo(@Param("repositoryId") UUID repositoryId);
+
+    @Query(value = """
+        SELECT ir.checksum 
+        FROM vcs.item_revision ir 
+        JOIN vcs.revision r ON ir.revision_id = r.id 
+        WHERE ir.item_id = :itemId 
+          AND r.revision_number <= :revNumber
+        ORDER BY r.revision_number DESC 
+        LIMIT 1
+    """, nativeQuery = true)
+    Optional<String> findChecksumAtOrBeforeRevision(@Param("itemId") UUID itemId, @Param("revNumber") Long revNumber);
 }
