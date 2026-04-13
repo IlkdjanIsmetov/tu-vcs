@@ -20,15 +20,12 @@ public class PullService {
     private final ItemRevisionRepository itemRevisionRepository;
     private final RepositoryService repositoryService;
 
-    /**
-     * СТЪПКА 1: Проверка за промени
-     * Сравнява какво има на сървъра с локалния манифест на потребителя.
-     */
+
     public List<SyncItemView> checkSyncStatus(UUID repositoryId, List<LocalItemMetadata> localManifest) {
-        // Използваме твоя съществуващ метод за вземане на последните версии на файловете
+        //Метод за вземане на последните версии на файловете
         List<ItemOutView> remoteItems = itemRevisionRepository.findLatestItemsForRepo(repositoryId);
 
-        // Организираме локалните данни в Map за бърз достъп по път на файла
+        // Организиране локалните данни в Map за бърз достъп по път на файла
         Map<String, LocalItemMetadata> localMap = localManifest.stream()
                 .collect(Collectors.toMap(LocalItemMetadata::getPath, m -> m));
 
@@ -51,7 +48,7 @@ public class PullService {
             localMap.remove(remote.getPath());
         }
 
-        // Случай 2: Всичко останало в локалния мап е изтрито на сървъра (Remote Delete)
+        //Всичко останало в локалния мап е изтрито на сървъра (Remote Delete)
         for (LocalItemMetadata localRemaining : localMap.values()) {
             syncResults.add(SyncItemView.builder()
                     .path(localRemaining.getPath())
@@ -62,12 +59,9 @@ public class PullService {
         return syncResults;
     }
 
-    /**
-     * СТЪПКА 2: Изтегляне на конкретно съдържание
-     * Позволява на потребителя да изтегли избрания от него файл.
-     */
+
     public Resource pullFileContent(UUID repositoryId, String storageKey) {
-        // Твоята логика за проверка на достъп и ревизия
+        //Проверка на достъп и ревизия
         repositoryService.fetchLatestRevision(repositoryId);
 
         try {
@@ -77,16 +71,14 @@ public class PullService {
             if (resource.exists() || resource.isReadable()) {
                 return resource;
             } else {
-                throw new RuntimeException("Файлът не беше намерен в хранилището: " + storageKey);
+                throw new RuntimeException("File is not found: " + storageKey);
             }
         } catch (IOException e) {
-            throw new RuntimeException("Грешка при четене на файл: " + storageKey, e);
+            throw new RuntimeException("Cannot read the file: " + storageKey, e);
         }
     }
 
-    /**
-     * Вътрешна логика за "Three-way merge" сравнение
-     */
+
     private SyncStatus calculateSyncStatus(ItemOutView remote, LocalItemMetadata local) {
         // 1. Пълно съвпадение
         if (remote.getChecksum().equals(local.getChecksum())) {
@@ -94,7 +86,6 @@ public class PullService {
         }
 
         // 2. Търсим състоянието на файла в базата данни спрямо последната ревизия на потребителя
-        // Използваме новия метод, който добавихме в ItemRevisionRepository
         String baseChecksum = itemRevisionRepository
                 .findChecksumAtOrBeforeRevision(remote.getId(), local.getLastPulledRevisionNumber())
                 .orElse(null);
