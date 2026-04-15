@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -40,7 +39,7 @@ public class CommitService {
         this.revisionRepository = revisionRepository;
     }
 
-    public String applyChange(UUID repositoryId, List<ItemInView> items, List<MultipartFile> files, String message, AppUser currentUser, String  logId){
+    public String applyChange(UUID repositoryId, List<ItemInView> items, List<MultipartFile> files, String message, AppUser currentUser, String logId) {
         Revision revision = createRevision(repositoryId, message, currentUser);
         //правя листа към мап с ключ името на файла, като разчитам че клиента ще опише връзките в ItemView
         Map<String, MultipartFile> fileMap = files.stream()
@@ -49,36 +48,46 @@ public class CommitService {
         for (ItemInView item : items) {
             if (item.getItemType().equals(ItemType.FILE)) {
                 switch (item.getAction()) {
-                    case ADD: addFile(repositoryId, item, fileMap.get(item.getFileRef()), revision, logId); break;
-                    case MODIFY: modifyFile(item, fileMap.get(item.getFileRef()), revision, logId); break;
-                    case DELETE: deleteFile(item, revision); break;
+                    case ADD:
+                        addFile(repositoryId, item, fileMap.get(item.getFileRef()), revision, logId);
+                        break;
+                    case MODIFY:
+                        modifyFile(item, fileMap.get(item.getFileRef()), revision, logId);
+                        break;
+                    case DELETE:
+                        deleteFile(item, revision);
+                        break;
                 }
             }
             if (item.getItemType().equals(ItemType.DIRECTORY)) {
                 switch (item.getAction()) {
-                    case ADD: addDir(repositoryId, item, revision); break;
+                    case ADD:
+                        addDir(repositoryId, item, revision);
+                        break;
 //                    case MODIFY: break; май няма как да е модифайд
-                    case DELETE: deleteDir(item, revision); break;
+                    case DELETE:
+                        deleteDir(item, revision);
+                        break;
                 }
             }
         }
         log.info("{}: Successfully commited changes", logId);
         return "OK";
     }
-    public void applyChangeFromCr(ChangeRequestItem crItem, Revision revision, UUID repoId){
-        Optional<Item> existingItem = itemRepository.findByRepositoryIdAndPath(repoId, crItem.getPath());
+
+    public void applyChangeFromCr(ChangeRequestItem crItem, Revision revision, UUID repositoryId) {
+        Optional<Item> existingItem = itemRepository.findByRepositoryIdAndPath(repositoryId, crItem.getPath());
         Item item;
-        if(crItem.getAction()==Action.ADD){
+        if (crItem.getAction() == Action.ADD) {
             if (existingItem.isPresent()) {
                 throw new RuntimeException("Conflict: File already exists at path " + crItem.getPath());
             }
             item = new Item();
-            item.setRepository(repositoryRepository.getReferenceById(repoId));
+            item.setRepository(repositoryRepository.getReferenceById(repositoryId));
             item.setPath(crItem.getPath());
             item.setItemType(crItem.getItemType());
-            item =itemRepository.save(item);
-        }
-        else {
+            item = itemRepository.save(item);
+        } else {
             item = existingItem.orElseThrow(() ->
                     new RuntimeException("File not found for " + crItem.getAction()));
         }
@@ -93,13 +102,13 @@ public class CommitService {
         itemRevisionRepository.save(itemRevision);
     }
 
-    private void addFile(UUID repositoryId , ItemInView itemInView, MultipartFile file, Revision revision, String logId) {
+    private void addFile(UUID repositoryId, ItemInView itemInView, MultipartFile file, Revision revision, String logId) {
         Item item = new Item();
         item.setRepository(repositoryRepository.getReferenceById(repositoryId));
         item.setItemType(ItemType.FILE);
         item.setPath(itemInView.getPath());
         item = itemRepository.save(item);
-        String storageKey = saveFileToStorage(file,logId);
+        String storageKey = saveFileToStorage(file, logId);
         ItemRevision itemRevision = new ItemRevision();
         itemRevision.setItem(item);
         itemRevision.setAction(Action.ADD);
@@ -159,7 +168,7 @@ public class CommitService {
             Files.copy(file.getInputStream(), downloadFileHere);
             return uuid;
         } catch (IOException e) {
-            log.error("{}: Error downloading file! {}", logId ,e.getMessage());
+            log.error("{}: Error downloading file! {}", logId, e.getMessage());
             throw new CommitException("Could not download file.");
         }
     }

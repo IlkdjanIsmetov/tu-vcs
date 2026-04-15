@@ -1,10 +1,7 @@
 package com.ksig.tu_vcs.services;
 
 
-import com.ksig.tu_vcs.repos.AppUserRepository;
-import com.ksig.tu_vcs.repos.ItemRevisionRepository;
-import com.ksig.tu_vcs.repos.RepositoryMemberRepository;
-import com.ksig.tu_vcs.repos.RepositoryRepository;
+import com.ksig.tu_vcs.repos.*;
 import com.ksig.tu_vcs.repos.entities.*;
 import com.ksig.tu_vcs.repos.entities.enums.Role;
 import com.ksig.tu_vcs.services.exceptions.ResourceAlreadyExistsException;
@@ -14,9 +11,9 @@ import com.ksig.tu_vcs.services.views.ItemOutView;
 import com.ksig.tu_vcs.services.views.RepositoryInView;
 import com.ksig.tu_vcs.services.views.RepositoryOutView;
 import com.ksig.tu_vcs.utils.UserContextUtil;
-import jakarta.servlet.Servlet;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -91,14 +88,17 @@ public class RepositoryService {
         log.info("{}: Deleted repository with id \"{}\"", logId, repositoryId);
     }
 
-    public List<ItemOutView> fetchLatestRevision(UUID repositoryId) {
+    public List<ItemOutView> fetchRevision(UUID repositoryId, Long revisionNumber) {
         AppUser currentUser = userContextUtil.getCurrentUser();
         Optional<RepositoryMember> currentMember =
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
         if (currentMember.isEmpty()) {
             throw new AccessDeniedException("You do not have access to this repository.");
         }
-        return itemRevisionRepository.findLatestItemsForRepo(repositoryId);
+        if (revisionNumber == null) {
+            return itemRevisionRepository.findLatestItemsForRepo(repositoryId);
+        }
+        return itemRevisionRepository.findAllFilesAtRevision(repositoryId, revisionNumber);
     }
 
     @Transactional
@@ -180,7 +180,8 @@ public class RepositoryService {
                 .map(this::convertToView)
                 .collect(Collectors.toList());
     }
-    public List<RepositoryOutView> searchRepositories(String search){
+
+    public List<RepositoryOutView> searchRepositories(String search) {
         return repositoryRepository.findByNameContainingIgnoreCase(search).stream()
                 .map(this::convertToView)
                 .collect(Collectors.toList());

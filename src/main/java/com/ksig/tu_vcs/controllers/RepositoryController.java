@@ -1,8 +1,10 @@
 package com.ksig.tu_vcs.controllers;
 
 import com.ksig.tu_vcs.repos.entities.AppUser;
+import com.ksig.tu_vcs.repos.entities.Item;
 import com.ksig.tu_vcs.repos.entities.Repository;
 import com.ksig.tu_vcs.repos.entities.enums.Role;
+import com.ksig.tu_vcs.services.CommitService;
 import com.ksig.tu_vcs.services.RepositoryService;
 import com.ksig.tu_vcs.services.views.ItemInView;
 import com.ksig.tu_vcs.services.views.ItemOutView;
@@ -13,14 +15,17 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 
@@ -66,10 +71,13 @@ public class RepositoryController {
     }
 
     @GetMapping("/{repositoryId}/fetch")
-    public ResponseEntity<List<ItemOutView>> fetchItmes(@PathVariable("repositoryId") UUID repositoryId, HttpServletRequest request) {
+    public ResponseEntity<List<ItemOutView>> fetchItmes(@PathVariable("repositoryId") UUID repositoryId,
+                                                        @RequestParam(required = false) Long revisionNumber,
+                                                        HttpServletRequest request) {
         String logId = UUID.randomUUID().toString();
         request.setAttribute("logId", logId);
-        return ResponseEntity.ok(repositoryService.fetchLatestRevision(repositoryId));
+
+        return ResponseEntity.ok(repositoryService.fetchRevision(repositoryId,revisionNumber));
     }
 
     @PostMapping("/{repositoryId}/addMember")
