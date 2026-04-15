@@ -41,6 +41,16 @@ public interface ItemRevisionRepository extends JpaRepository<ItemRevision, UUID
     List<ItemOutView> findLatestItemsForRepo(@Param("repositoryId") UUID repositoryId);
 
     @Query(value = """
+        SELECT ir.checksum 
+        FROM vcs.item_revision ir 
+        JOIN vcs.revision r ON ir.revision_id = r.id 
+        WHERE ir.item_id = :itemId 
+          AND r.revision_number <= :revNumber
+        ORDER BY r.revision_number DESC 
+        LIMIT 1
+    """, nativeQuery = true)
+    Optional<String> findChecksumAtOrBeforeRevision(@Param("itemId") UUID itemId, @Param("revNumber") Long revNumber);
+}
     SELECT 
         i.id AS id, 
         i.path AS path, 
