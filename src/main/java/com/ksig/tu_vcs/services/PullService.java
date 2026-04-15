@@ -1,8 +1,8 @@
 package com.ksig.tu_vcs.services;
 
 import com.ksig.tu_vcs.repos.ItemRevisionRepository;
+import com.ksig.tu_vcs.repos.entities.enums.SyncStatus;
 import com.ksig.tu_vcs.services.views.*;
-import com.ksig.tu_vcs.services.views.SyncStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -61,7 +61,7 @@ public class PullService {
 
     public Resource pullFileContent(UUID repositoryId, String storageKey) {
         //Проверка на достъп и ревизия
-        repositoryService.fetchLatestRevision(repositoryId);
+        repositoryService.fetchRevision(repositoryId, null);
 
         try {
             Path filePath = Path.of(STORAGE_PATH).resolve(storageKey);

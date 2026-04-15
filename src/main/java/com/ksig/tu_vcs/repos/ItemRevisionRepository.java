@@ -15,64 +15,67 @@ import java.util.UUID;
 @Repository
 public interface ItemRevisionRepository extends JpaRepository<ItemRevision, UUID> {
     List<ItemRevision> findByRevisionId(UUID revisionId);
+
     List<ItemRevision> findByItemId(UUID itemId);
 
     @Query(value = """
-        SELECT 
-            i.id AS id, 
-            i.path AS path, 
-            i.item_type AS itemType, 
-            ir.revision_id AS revisionId, 
-            r.revision_number AS revisionNumber, 
-            ir.checksum AS checksum, 
-            ir.storage_key AS storageKey
-        FROM vcs.item i
-        JOIN vcs.item_revision ir ON i.id = ir.item_id
-        JOIN vcs.revision r ON ir.revision_id = r.id
-        WHERE i.repository_id = :repositoryId
-          AND ir.action != 'DELETE'
-          AND r.revision_number = (
-              SELECT MAX(r2.revision_number)
-              FROM vcs.revision r2
-              JOIN vcs.item_revision ir2 ON ir2.revision_id = r2.id
-              WHERE ir2.item_id = ir.item_id
-          )
-    """, nativeQuery = true)
+                SELECT 
+                    i.id AS id, 
+                    i.path AS path, 
+                    i.item_type AS itemType, 
+                    ir.revision_id AS revisionId, 
+                    r.revision_number AS revisionNumber, 
+                    ir.checksum AS checksum, 
+                    ir.storage_key AS storageKey
+                FROM vcs.item i
+                JOIN vcs.item_revision ir ON i.id = ir.item_id
+                JOIN vcs.revision r ON ir.revision_id = r.id
+                WHERE i.repository_id = :repositoryId
+                  AND ir.action != 'DELETE'
+                  AND r.revision_number = (
+                      SELECT MAX(r2.revision_number)
+                      FROM vcs.revision r2
+                      JOIN vcs.item_revision ir2 ON ir2.revision_id = r2.id
+                      WHERE ir2.item_id = ir.item_id
+                  )
+            """, nativeQuery = true)
     List<ItemOutView> findLatestItemsForRepo(@Param("repositoryId") UUID repositoryId);
 
     @Query(value = """
-        SELECT ir.checksum 
-        FROM vcs.item_revision ir 
-        JOIN vcs.revision r ON ir.revision_id = r.id 
-        WHERE ir.item_id = :itemId 
-          AND r.revision_number <= :revNumber
-        ORDER BY r.revision_number DESC 
-        LIMIT 1
-    """, nativeQuery = true)
+                SELECT ir.checksum 
+                FROM vcs.item_revision ir 
+                JOIN vcs.revision r ON ir.revision_id = r.id 
+                WHERE ir.item_id = :itemId 
+                  AND r.revision_number <= :revNumber
+                ORDER BY r.revision_number DESC 
+                LIMIT 1
+            """, nativeQuery = true)
     Optional<String> findChecksumAtOrBeforeRevision(@Param("itemId") UUID itemId, @Param("revNumber") Long revNumber);
-}
-    SELECT 
-        i.id AS id, 
-        i.path AS path, 
-        i.item_type AS itemType, 
-        ir.revision_id AS revisionId, 
-        r.revision_number AS revisionNumber, 
-        ir.checksum AS checksum, 
-        ir.storage_key AS storageKey
-    FROM vcs.item i
-    JOIN vcs.item_revision ir ON i.id = ir.item_id
-    JOIN vcs.revision r ON ir.revision_id = r.id
-    WHERE i.repository_id = :repositoryId
-      AND r.revision_number <= :revisionNumber
-      AND r.revision_number = (
-          SELECT MAX(r2.revision_number)
-          FROM revision r2
-          JOIN item_revision ir2 ON ir2.revision_id = r2.id
-          WHERE ir2.item_id = i.id
-            AND r2.revision_number <= :revisionNumber
-      )
-      AND ir.action != 'DELETE'
-    """, nativeQuery = true)
+
+
+    @Query(value = """
+            SELECT 
+                i.id AS id, 
+                i.path AS path, 
+                i.item_type AS itemType, 
+                ir.revision_id AS revisionId, 
+                r.revision_number AS revisionNumber, 
+                ir.checksum AS checksum, 
+                ir.storage_key AS storageKey
+            FROM vcs.item i
+            JOIN vcs.item_revision ir ON i.id = ir.item_id
+            JOIN vcs.revision r ON ir.revision_id = r.id
+            WHERE i.repository_id = :repositoryId
+              AND r.revision_number <= :revisionNumber
+              AND r.revision_number = (
+                  SELECT MAX(r2.revision_number)
+                  FROM revision r2
+                  JOIN item_revision ir2 ON ir2.revision_id = r2.id
+                  WHERE ir2.item_id = i.id
+                    AND r2.revision_number <= :revisionNumber
+              )
+              AND ir.action != 'DELETE'
+            """, nativeQuery = true)
     List<ItemOutView> findAllFilesAtRevision(
             @Param("repositoryId") UUID repositoryId,
             @Param("revisionNumber") long revisionNumber
