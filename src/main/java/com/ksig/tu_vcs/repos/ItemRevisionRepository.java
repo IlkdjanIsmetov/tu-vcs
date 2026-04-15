@@ -80,4 +80,33 @@ public interface ItemRevisionRepository extends JpaRepository<ItemRevision, UUID
             @Param("repositoryId") UUID repositoryId,
             @Param("revisionNumber") long revisionNumber
     );
+
+    @Query("""
+    SELECT ir.storageKey 
+    FROM ItemRevision ir 
+    WHERE ir.revision.repository.id = :repoId 
+      AND ir.item.path = :path 
+      AND ir.revision.revisionNumber <= :revNum 
+    ORDER BY ir.revision.revisionNumber DESC
+""")
+    List<String> findStorageKeyAtOrBeforeRevision(
+            @Param("repoId") UUID repoId,
+            @Param("revNum") Long revNum,
+            @Param("path") String path,
+            Pageable pageable
+    );
+
+    @Query("""
+        SELECT ir.storageKey
+        FROM ItemRevision ir
+        WHERE ir.revision.repository.id = :repoId
+          AND ir.item.path = :path
+        ORDER BY ir.revision.revisionNumber DESC
+""")
+    List<String> findLatestStorageKey(
+            @Param("repoId") UUID repoId,
+            @Param("path") String path,
+            Pageable pageable
+    );
+
 }

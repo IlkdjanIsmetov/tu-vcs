@@ -1,18 +1,27 @@
 package com.ksig.tu_vcs.services;
 
 import com.ksig.tu_vcs.repos.ItemRevisionRepository;
-import com.ksig.tu_vcs.repos.entities.enums.SyncStatus;
+import com.ksig.tu_vcs.repos.entities.ItemRevision;
+import com.ksig.tu_vcs.services.exceptions.ResourceNotFoundException;
 import com.ksig.tu_vcs.services.views.*;
+import com.ksig.tu_vcs.repos.entities.enums.SyncStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.ksig.tu_vcs.services.CommitService.ROOT_DOWNLOAD_PATH;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PullService {
@@ -20,7 +29,7 @@ public class PullService {
     private final ItemRevisionRepository itemRevisionRepository;
     private final RepositoryService repositoryService;
 
-    public List<SyncItemView> checkSyncStatus(UUID repositoryId, List<LocalItemMetadata> localManifest) {
+    public List<SyncItemView> checkSyncStatus(UUID repositoryId, List<LocalItemMetadata> localManifest, String logId) {
         //Метод за вземане на последните версии на файловете
         List<ItemOutView> remoteItems = itemRevisionRepository.findLatestItemsForRepo(repositoryId);
 
@@ -54,12 +63,12 @@ public class PullService {
                     .status(SyncStatus.DELETED_REMOTE)
                     .build());
         }
-
+        log.info("{}: Sync status check completely for repository {}", logId, repositoryId);
         return syncResults;
     }
 
 
-    public Resource pullFileContent(UUID repositoryId, String storageKey) {
+    public Resource pullFileContent(UUID repositoryId, String storageKey, String logId) {
         //Проверка на достъп и ревизия
         repositoryService.fetchRevision(repositoryId, null);
 
@@ -68,11 +77,14 @@ public class PullService {
             Resource resource = new UrlResource(filePath.toUri());
 
             if (resource.exists() || resource.isReadable()) {
+                log.info("{}: Successfully delivering file {}", logId, filePath.getFileName());
                 return resource;
             } else {
+                log.error("{}: File not found: {}", logId, filePath.toAbsolutePath());
                 throw new RuntimeException("File is not found: " + storageKey);
             }
         } catch (IOException e) {
+            log.error("{}: Error reading the file! {}", logId, e.getMessage());
             throw new RuntimeException("Cannot read the file: " + storageKey, e);
         }
     }
@@ -114,5 +126,32 @@ public class PullService {
                 .storageKey(remote.getStorageKey())
                 .serverRevisionNumber(remote.getRevisionNumber())
                 .build();
+    }
+
+    public String loadFileContent(String storageKey, String logId) throws IOException {
+        Path path = Paths.get(ROOT_DOWNLOAD_PATH + storageKey);
+        log.info("{}: Successfully returning content for '{}'", logId, path);
+        return Files.readString(path);
+    }
+
+    public String getStorageKey(UUID repositoryId, String filePath, Long revision, String logId) {
+
+        if (revision != null) {
+            log.info("{}: Fetching storage key for filePath '{}' at revision {}", logId, filePath, revision);
+            return itemRevisionRepository.findStorageKeyAtOrBeforeRevision(
+                            repositoryId, revision, filePath, PageRequest.of(0, 1))
+                    .stream()
+                    .findFirst()
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "File '" + filePath + "' did not exist yet at revision " + revision));
+
+        }
+        log.info("{}: Fetching latest storage key for filePath '{}'", logId, filePath);
+        List<String> results = itemRevisionRepository.findLatestStorageKey(repositoryId, filePath, PageRequest.of(0, 1));
+        if (results.isEmpty()) {
+            log.warn("{}: No history found for file: '{}'", logId, filePath);
+            throw new ResourceNotFoundException("File '" + filePath + "' not found in revision " + revision);
+        }
+        return results.get(0);
     }
 }
