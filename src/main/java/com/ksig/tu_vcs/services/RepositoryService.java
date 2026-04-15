@@ -1,10 +1,7 @@
 package com.ksig.tu_vcs.services;
 
 
-import com.ksig.tu_vcs.repos.AppUserRepository;
-import com.ksig.tu_vcs.repos.ItemRevisionRepository;
-import com.ksig.tu_vcs.repos.RepositoryMemberRepository;
-import com.ksig.tu_vcs.repos.RepositoryRepository;
+import com.ksig.tu_vcs.repos.*;
 import com.ksig.tu_vcs.repos.entities.*;
 import com.ksig.tu_vcs.repos.entities.enums.Role;
 import com.ksig.tu_vcs.services.exceptions.ResourceAlreadyExistsException;
@@ -16,13 +13,16 @@ import com.ksig.tu_vcs.services.views.RepositoryOutView;
 import com.ksig.tu_vcs.utils.UserContextUtil;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -55,7 +55,7 @@ public class RepositoryService {
     @Transactional
     public RepositoryOutView createRepository(RepositoryInView view, String logId) {
         if (repositoryRepository.findByName(view.getRepositoryName()).isPresent()) {
-            log.error("{}: Repository with name \"{}\" already exists", logId,view.getRepositoryName());
+            log.error("{}: Repository with name \"{}\" already exists", logId, view.getRepositoryName());
             throw new ResourceAlreadyExistsException("Repository with name " + view.getRepositoryName() + " already exists");
         }
         AppUser currentUser = userContextUtil.getCurrentUser();
@@ -88,14 +88,17 @@ public class RepositoryService {
         log.info("{}: Deleted repository with id \"{}\"", logId, repositoryId);
     }
 
-    public List<ItemOutView> fetchLatestRevision(UUID repositoryId) {
+    public List<ItemOutView> fetchRevision(UUID repositoryId, Long revisionNumber) {
         AppUser currentUser = userContextUtil.getCurrentUser();
         Optional<RepositoryMember> currentMember =
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
         if (currentMember.isEmpty()) {
             throw new AccessDeniedException("You do not have access to this repository.");
         }
-        return itemRevisionRepository.findLatestItemsForRepo(repositoryId);
+        if (revisionNumber == null) {
+            return itemRevisionRepository.findLatestItemsForRepo(repositoryId);
+        }
+        return itemRevisionRepository.findAllFilesAtRevision(repositoryId, revisionNumber);
     }
 
     @Transactional
@@ -150,5 +153,37 @@ public class RepositoryService {
             throw new AccessDeniedException("You cannot clone this repository.");
         }
         return constructRepoService.constructZipFolder(repositoryId, logId);
+    }
+
+    private String generateRepositoryUrl(UUID repositoryId) {
+        return ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/repositories/")
+                .path(repositoryId.toString())
+                .toUriString();
+    }
+
+    private RepositoryOutView convertToView(Repository repository) {
+        RepositoryOutView view = RepositoryOutView.fromEntity(repository);
+        view.setUrl(generateRepositoryUrl(repository.getId()));
+        return view;
+    }
+
+    public List<RepositoryOutView> findAllRepositories() {
+        return repositoryRepository.findAll().stream()
+                .map(this::convertToView)
+                .collect(Collectors.toList());
+
+    }
+
+    public List<RepositoryOutView> findUserRepositories(UUID userId) {
+        return repositoryRepository.findByOwnerId(userId).stream()
+                .map(this::convertToView)
+                .collect(Collectors.toList());
+    }
+
+    public List<RepositoryOutView> searchRepositories(String search) {
+        return repositoryRepository.findByNameContainingIgnoreCase(search).stream()
+                .map(this::convertToView)
+                .collect(Collectors.toList());
     }
 }
