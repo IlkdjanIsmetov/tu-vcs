@@ -20,7 +20,6 @@ public class PullService {
     private final ItemRevisionRepository itemRevisionRepository;
     private final RepositoryService repositoryService;
 
-
     public List<SyncItemView> checkSyncStatus(UUID repositoryId, List<LocalItemMetadata> localManifest) {
         //Метод за вземане на последните версии на файловете
         List<ItemOutView> remoteItems = itemRevisionRepository.findLatestItemsForRepo(repositoryId);
