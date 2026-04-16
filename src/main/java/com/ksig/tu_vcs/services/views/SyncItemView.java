@@ -1,5 +1,6 @@
 package com.ksig.tu_vcs.services.views;
 
+import com.ksig.tu_vcs.repos.entities.enums.ItemType;
 import com.ksig.tu_vcs.repos.entities.enums.SyncStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,4 +19,5 @@ public class SyncItemView {
     private String serverChecksum;
     private String storageKey;
     private Long serverRevisionNumber;
+    private ItemType itemType;
 }

@@ -125,6 +125,7 @@ public class PullService {
                 .serverChecksum(remote.getChecksum())
                 .storageKey(remote.getStorageKey())
                 .serverRevisionNumber(remote.getRevisionNumber())
+                .itemType(remote.getItemType())
                 .build();
     }
 
