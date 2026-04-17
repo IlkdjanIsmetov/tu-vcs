@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Controller
-    @RequestMapping("/api/repositories/{repositoryId}/change-request")
+@RequestMapping("/api/repositories/{repositoryId}/change-request")
 public class ChangeRequestController {
     private final ChangeRequestService changeRequestService;
     private final UserContextUtil userContextUtil;
@@ -33,25 +33,26 @@ public class ChangeRequestController {
 
     @PostMapping
     public ResponseEntity<UUID> createChangeRequest(@PathVariable("repositoryId") UUID repositoryId,
-                                                             @RequestBody CreateCRView view,
-                                                             HttpServletRequest request) {
+                                                    @RequestBody CreateCRView view,
+                                                    HttpServletRequest request) {
         String logId = UUID.randomUUID().toString();
         request.setAttribute("logId", logId);
         AppUser currentUser = userContextUtil.getCurrentUser();
-        ChangeRequest changeRequest = changeRequestService.createChangeRequest(repositoryId, currentUser.getId(), view);
+        ChangeRequest changeRequest = changeRequestService.createChangeRequest(repositoryId, currentUser, view);
         return ResponseEntity.ok(changeRequest.getId());
     }
 
     @PostMapping(value = "/{changeRequestId}/items", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseBody
-    public ResponseEntity<Map<String, String>> addItems(@PathVariable("changeRequestId") UUID changeRequestId,
-                                                       @RequestPart("paths") List<ItemInView> views,
-                                                       @RequestPart("files") List<MultipartFile> files,
-                                                       HttpServletRequest request) {
-
+    public ResponseEntity<Map<String, String>> addItems(@PathVariable UUID repositoryId,
+                                                        @PathVariable("changeRequestId") UUID changeRequestId,
+                                                        @RequestPart("paths") List<ItemInView> views,
+                                                        @RequestPart("files") List<MultipartFile> files,
+                                                        HttpServletRequest request) {
+        AppUser currentUser = userContextUtil.getCurrentUser();
         String logId = UUID.randomUUID().toString();
         request.setAttribute("logId", logId);
-        changeRequestService.addItemToChangeRequest(changeRequestId, views, files, logId);
+        changeRequestService.addItemToChangeRequest(repositoryId, currentUser,changeRequestId, views, files, logId);
         return ResponseEntity.ok(Map.of("status", "OK"));
     }
 
@@ -68,12 +69,13 @@ public class ChangeRequestController {
     }
 
     @PostMapping("/{changeRequestId}/reject")
-    public ResponseEntity<String> rejectChangeRequest(@PathVariable UUID changeRequestId,
+    public ResponseEntity<String> rejectChangeRequest(@PathVariable("repositoryId") UUID repositoryId,
+                                                      @PathVariable("changeRequestId") UUID changeRequestId,
                                                       HttpServletRequest request) {
-
+        AppUser currentUser = userContextUtil.getCurrentUser();
         String logId = UUID.randomUUID().toString();
         request.setAttribute("logId", logId);
-        changeRequestService.rejectChangeRequest(changeRequestId);
+        changeRequestService.rejectChangeRequest(repositoryId, currentUser, changeRequestId);
         return ResponseEntity.ok("Change request rejected");
     }
 
