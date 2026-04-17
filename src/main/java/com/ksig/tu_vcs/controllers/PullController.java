@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/pull")
+@RequestMapping("/api/repositories")
 public class PullController {
     private final PullService pullService;
 
