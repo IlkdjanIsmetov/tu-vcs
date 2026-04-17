@@ -42,9 +42,9 @@ public class ChangeRequestController {
         return ResponseEntity.ok(changeRequest.getId());
     }
 
-    @PostMapping(value = "/{changeRequestId}/item", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/{changeRequestId}/items", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseBody
-    public ResponseEntity<Map<String, String>> addItem(@PathVariable("changeRequestId") UUID changeRequestId,
+    public ResponseEntity<Map<String, String>> addItems(@PathVariable("changeRequestId") UUID changeRequestId,
                                                        @RequestPart("paths") List<ItemInView> views,
                                                        @RequestPart("files") List<MultipartFile> files,
                                                        HttpServletRequest request) {
