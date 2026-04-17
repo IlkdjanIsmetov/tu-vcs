@@ -9,16 +9,18 @@ import com.ksig.tu_vcs.services.views.CreateCRView;
 import com.ksig.tu_vcs.services.views.ItemInView;
 import com.ksig.tu_vcs.utils.UserContextUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Controller
-@RequestMapping("/api/repositories/{repositoryId}/change-request")
+    @RequestMapping("/api/repositories/{repositoryId}/change-request")
 public class ChangeRequestController {
     private final ChangeRequestService changeRequestService;
     private final UserContextUtil userContextUtil;
@@ -30,27 +32,27 @@ public class ChangeRequestController {
     }
 
     @PostMapping
-    public ResponseEntity<ChangeRequest> createChangeRequest(@PathVariable("repositoryId") UUID repositoryId,
+    public ResponseEntity<UUID> createChangeRequest(@PathVariable("repositoryId") UUID repositoryId,
                                                              @RequestBody CreateCRView view,
                                                              HttpServletRequest request) {
         String logId = UUID.randomUUID().toString();
         request.setAttribute("logId", logId);
         AppUser currentUser = userContextUtil.getCurrentUser();
         ChangeRequest changeRequest = changeRequestService.createChangeRequest(repositoryId, currentUser.getId(), view);
-        return ResponseEntity.ok(changeRequest);
+        return ResponseEntity.ok(changeRequest.getId());
     }
 
-    @PostMapping(value = "/{changeRequestId}/item", consumes = {"multipart/form-data"})
+    @PostMapping(value = "/{changeRequestId}/item", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseBody
-    public ResponseEntity<ChangeRequestItem> addItem(@PathVariable("changeRequestId") UUID changeRequestId,
-                                                     @RequestPart("metadata") ItemInView view,
-                                                     @RequestPart(value = "file", required = false) MultipartFile file,
-                                                     HttpServletRequest request) {
+    public ResponseEntity<Map<String, String>> addItem(@PathVariable("changeRequestId") UUID changeRequestId,
+                                                       @RequestPart("paths") List<ItemInView> views,
+                                                       @RequestPart("files") List<MultipartFile> files,
+                                                       HttpServletRequest request) {
 
         String logId = UUID.randomUUID().toString();
         request.setAttribute("logId", logId);
-        ChangeRequestItem item = changeRequestService.addItemToChangeRequest(changeRequestId, view, file, logId);
-        return ResponseEntity.ok(item);
+        changeRequestService.addItemToChangeRequest(changeRequestId, views, files, logId);
+        return ResponseEntity.ok(Map.of("status", "OK"));
     }
 
     @PostMapping("/{changeRequestId}/approve")

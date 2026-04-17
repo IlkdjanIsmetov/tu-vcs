@@ -14,7 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class ChangeRequestService {
@@ -25,7 +27,9 @@ public class ChangeRequestService {
     private final RevisionRepository revisionRepository;
     private final CommitService commitService;
 
-    public ChangeRequestService(RepositoryRepository repositoryRepository, AppUserRepository appUserRepository, ChangeRequestRepository changeRequestRepository, ChangeRequestItemRepository changeRequestItemRepository, RevisionRepository revisionRepository, CommitService commitService) {
+    public ChangeRequestService(RepositoryRepository repositoryRepository, AppUserRepository appUserRepository,
+                                ChangeRequestRepository changeRequestRepository, ChangeRequestItemRepository changeRequestItemRepository,
+                                RevisionRepository revisionRepository, CommitService commitService) {
         this.repositoryRepository = repositoryRepository;
         this.appUserRepository = appUserRepository;
         this.changeRequestRepository = changeRequestRepository;
@@ -47,33 +51,38 @@ public class ChangeRequestService {
     }
 
     @Transactional
-    public ChangeRequestItem addItemToChangeRequest(UUID changeRequestId, ItemInView view, MultipartFile file, String logId) {
+    public void addItemToChangeRequest(UUID changeRequestId, List<ItemInView> views, List<MultipartFile> files, String logId) {
         ChangeRequest changeRequest = changeRequestRepository.findById(changeRequestId)
                 .orElseThrow(() -> new RuntimeException("Change request not found"));
 
         if (changeRequest.getStatus() != ChangeRequestStatus.PENDING) {
             throw new RuntimeException("Cannot add item to a non-pending change request");
         }
+        //правя листа към мап с ключ името на файла, като разчитам че клиента ще опише връзките в ItemView
+        Map<String, MultipartFile> fileMap = files.stream()
+                .collect(Collectors.toMap(MultipartFile::getOriginalFilename, file -> file));
 
-        ChangeRequestItem changeRequestItem = new ChangeRequestItem();
-        changeRequestItem.setChangeRequest(changeRequest);
-        changeRequestItem.setPath(view.getPath());
-        changeRequestItem.setItemType(view.getItemType());
-        changeRequestItem.setAction(view.getAction());
+        for (ItemInView view : views) {
+            ChangeRequestItem changeRequestItem = new ChangeRequestItem();
+            changeRequestItem.setChangeRequest(changeRequest);
+            changeRequestItem.setPath(view.getPath());
+            changeRequestItem.setItemType(view.getItemType());
+            changeRequestItem.setAction(view.getAction());
+            MultipartFile file = fileMap.get(view.getPath());
+            if (view.getAction() != Action.DELETE) {
+                String storageKey = commitService.saveFileToStorage(file, logId);
 
-        if (view.getAction() != Action.DELETE) {
-            String storageKey = commitService.saveFileToStorage(file, logId);
+                changeRequestItem.setStorageKey(storageKey);
+                changeRequestItem.setFileSize(file.getSize());
+                changeRequestItem.setChecksum(view.getChecksum());
+            } else {
+                changeRequestItem.setStorageKey(null);
+                changeRequestItem.setFileSize(0L);
+                changeRequestItem.setChecksum(null);
+            }
 
-            changeRequestItem.setStorageKey(storageKey);
-            changeRequestItem.setFileSize(file.getSize());
-            changeRequestItem.setChecksum(view.getChecksum());
-        } else {
-            changeRequestItem.setStorageKey(null);
-            changeRequestItem.setFileSize(0L);
-            changeRequestItem.setChecksum(null);
+            changeRequestItemRepository.save(changeRequestItem);
         }
-
-        return changeRequestItemRepository.save(changeRequestItem);
     }
 
     @Transactional
