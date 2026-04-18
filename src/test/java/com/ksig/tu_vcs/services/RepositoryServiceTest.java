@@ -20,6 +20,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -232,7 +235,7 @@ class RepositoryServiceTest {
 
         verify(itemRevisionRepository).findLatestItemsForRepo(repoId);
         verify(itemRevisionRepository, never())
-                .findAllFilesAtRevision(any(), any());
+                .findAllFilesAtRevision(any(), anyLong());
     }
 
     @Test
@@ -399,13 +402,19 @@ class RepositoryServiceTest {
         currentUser.setId(UUID.randomUUID());
 
         RepositoryMember currentMember = new RepositoryMember();
-        currentMember.setRole(Role.CONTRIBUTOR);
+        currentMember.setRole(Role.CONTRIBUTOR); // NOT MASTER
+
+        AppUser newUser = new AppUser();
 
         when(userContextUtil.getCurrentUser()).thenReturn(currentUser);
 
         when(repositoryMemberRepository
                 .findByRepositoryIdAndUserId(repoId, currentUser.getId()))
                 .thenReturn(Optional.of(currentMember));
+
+        // 🔥 THIS WAS MISSING
+        when(appUserRepository.findByUsername("newUser"))
+                .thenReturn(Optional.of(newUser));
 
         assertThrows(AccessDeniedException.class,
                 () -> repositoryService.addMember(repoId, "newUser", Role.VIEWER, "LOG1"));
@@ -421,11 +430,17 @@ class RepositoryServiceTest {
         AppUser currentUser = new AppUser();
         currentUser.setId(UUID.randomUUID());
 
+        AppUser newUser = new AppUser(); // target user
+
         when(userContextUtil.getCurrentUser()).thenReturn(currentUser);
 
         when(repositoryMemberRepository
                 .findByRepositoryIdAndUserId(repoId, currentUser.getId()))
                 .thenReturn(Optional.empty());
+
+        // 🔥 REQUIRED: allow service to pass user lookup
+        when(appUserRepository.findByUsername("newUser"))
+                .thenReturn(Optional.of(newUser));
 
         assertThrows(AccessDeniedException.class,
                 () -> repositoryService.addMember(repoId, "newUser", Role.VIEWER, "LOG1"));
@@ -649,6 +664,13 @@ class RepositoryServiceTest {
     @Test
     void shouldReturnAllRepositories() {
 
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("localhost");
+        request.setServerPort(8080);
+
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+
         Repository repo1 = new Repository();
         repo1.setId(UUID.randomUUID());
         repo1.setName("Repo1");
@@ -684,6 +706,13 @@ class RepositoryServiceTest {
 
     @Test
     void shouldReturnUserRepositories() {
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("localhost");
+        request.setServerPort(8080);
+
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
         UUID userId = UUID.randomUUID();
 
@@ -726,6 +755,13 @@ class RepositoryServiceTest {
 
     @Test
     void shouldReturnRepositoriesMatchingSearch() {
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("localhost");
+        request.setServerPort(8080);
+
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
         String search = "repo";
 

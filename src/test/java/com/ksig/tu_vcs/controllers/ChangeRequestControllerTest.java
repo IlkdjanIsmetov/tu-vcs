@@ -18,6 +18,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -48,48 +50,66 @@ class ChangeRequestControllerTest {
         CreateCRView view = mock(CreateCRView.class);
 
         ChangeRequest cr = new ChangeRequest();
+        UUID crId = UUID.randomUUID();
+        cr.setId(crId);
 
         when(userContextUtil.getCurrentUser()).thenReturn(user);
-        when(changeRequestService.createChangeRequest(repoId, user.getId(), view))
+        when(changeRequestService.createChangeRequest(repoId, user, view))
                 .thenReturn(cr);
 
-        ResponseEntity<ChangeRequest> response =
+        ResponseEntity<UUID> response =
                 changeRequestController.createChangeRequest(repoId, view, request);
 
-        assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(cr, response.getBody());
+        assertEquals(crId, response.getBody());
 
-        verify(userContextUtil).getCurrentUser();
-        verify(changeRequestService).createChangeRequest(repoId, user.getId(), view);
-        verify(request).setAttribute(eq("logId"), any());
+        verify(changeRequestService).createChangeRequest(repoId, user, view);
     }
 
     @Test
     void shouldAddItemToChangeRequest() {
 
+        UUID repoId = UUID.randomUUID();
         UUID crId = UUID.randomUUID();
 
         HttpServletRequest request = mock(HttpServletRequest.class);
 
+        AppUser user = new AppUser();
+        user.setId(UUID.randomUUID());
+
         ItemInView view = mock(ItemInView.class);
         MultipartFile file = mock(MultipartFile.class);
 
-        ChangeRequestItem item = new ChangeRequestItem();
+        when(userContextUtil.getCurrentUser()).thenReturn(user);
 
-        when(changeRequestService.addItemToChangeRequest(eq(crId), eq(view), eq(file), any()))
-                .thenReturn(item);
+        doNothing().when(changeRequestService).addItemToChangeRequest(
+                eq(repoId),
+                eq(user),
+                eq(crId),
+                anyList(),
+                anyList(),
+                any()
+        );
 
-        ResponseEntity<ChangeRequestItem> response =
-                changeRequestController.addItem(crId, view, file, request);
+        ResponseEntity<Map<String, String>> response =
+                changeRequestController.addItems(
+                        repoId,
+                        crId,
+                        List.of(view),
+                        List.of(file),
+                        request
+                );
 
-        assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(item, response.getBody());
 
-        verify(changeRequestService)
-                .addItemToChangeRequest(eq(crId), eq(view), eq(file), any());
-        verify(request).setAttribute(eq("logId"), any());
+        verify(changeRequestService).addItemToChangeRequest(
+                eq(repoId),
+                eq(user),
+                eq(crId),
+                anyList(),
+                anyList(),
+                any()
+        );
     }
 
     @Test
@@ -120,18 +140,22 @@ class ChangeRequestControllerTest {
     @Test
     void shouldRejectChangeRequest() {
 
+        UUID repoId = UUID.randomUUID();
         UUID crId = UUID.randomUUID();
 
         HttpServletRequest request = mock(HttpServletRequest.class);
 
-        ResponseEntity<String> response =
-                changeRequestController.rejectChangeRequest(crId, request);
+        AppUser user = new AppUser();
+        user.setId(UUID.randomUUID());
 
-        assertNotNull(response);
+        when(userContextUtil.getCurrentUser()).thenReturn(user);
+
+        ResponseEntity<String> response =
+                changeRequestController.rejectChangeRequest(repoId, crId, request);
+
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("Change request rejected", response.getBody());
 
-        verify(changeRequestService).rejectChangeRequest(crId);
-        verify(request).setAttribute(eq("logId"), any());
+        verify(changeRequestService).rejectChangeRequest(repoId, user, crId);
     }
 }

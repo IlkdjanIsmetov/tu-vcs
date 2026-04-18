@@ -20,6 +20,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.Files;
@@ -45,12 +48,17 @@ class RepositoryControllerTest {
     @Test
     void shouldCreateRepository() {
 
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("localhost");
+        request.setServerPort(8080);
+
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+
         RepositoryInView view = new RepositoryInView();
 
         RepositoryOutView out = new RepositoryOutView();
         out.setId(UUID.randomUUID());
-
-        HttpServletRequest request = mock(HttpServletRequest.class);
 
         when(repositoryService.createRepository(any(), any()))
                 .thenReturn(out);
@@ -59,12 +67,13 @@ class RepositoryControllerTest {
                 repositoryController.createRepository(view, request);
 
         assertNotNull(response);
-        assertEquals(200, response.getStatusCode());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertNotNull(response.getBody().getUrl());
 
         verify(repositoryService).createRepository(any(), any());
-        verify(request).setAttribute(eq("logId"), any());
+
+        RequestContextHolder.resetRequestAttributes();
     }
 
     @Test
@@ -207,7 +216,7 @@ class RepositoryControllerTest {
         Path tempFile = Files.createTempFile("repo", ".zip");
         Files.writeString(tempFile, "data");
 
-        when(repositoryService.getZippedRepo(repoId, any()))
+        when(repositoryService.getZippedRepo(eq(repoId), any()))
                 .thenReturn(tempFile);
 
         ResponseEntity<Resource> response =

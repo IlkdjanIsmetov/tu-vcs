@@ -119,7 +119,9 @@ public class ConstructRepoService {
                             zos.putNextEntry(zipEntry);
 
                             if (!Files.isDirectory(path)) {
-                                Files.copy(path, zos);
+                                try (var in = Files.newInputStream(path)) {
+                                    in.transferTo(zos);
+                                }
                             }
 
                             zos.closeEntry();
@@ -132,13 +134,11 @@ public class ConstructRepoService {
             String repoMeta = "/.tu_vcs_repo/repo.json";
             ZipEntry zipEntry = new ZipEntry(repoMeta);
             zos.putNextEntry(zipEntry);
-            objectMapper.writeValue(zos, repo);
-            zos.closeEntry();
+            zos.write(objectMapper.writeValueAsBytes(repo));            zos.closeEntry();
             String itemMeta = "/.tu_vcs_repo/items.json";
             zipEntry = new ZipEntry(itemMeta);
             zos.putNextEntry(zipEntry);
-            objectMapper.writeValue(zos, items);
-            zos.closeEntry();
+            zos.write(objectMapper.writeValueAsBytes(items));            zos.closeEntry();
         }
     }
 }

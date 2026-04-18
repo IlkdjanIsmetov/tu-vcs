@@ -16,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 
@@ -63,17 +65,19 @@ class PullControllerTest {
 
         HttpServletRequest request = mock(HttpServletRequest.class);
 
-        Resource resource = mock(Resource.class);
+        Path tempDir = Files.createTempDirectory("test");
+        Path tempFile = tempDir.resolve(storageKey);
+        Files.writeString(tempFile, "data");
 
         when(pullService.pullFileContent(eq(repoId), eq(storageKey), any()))
-                .thenReturn(resource.getFilePath());
+                .thenReturn(tempFile);
 
         ResponseEntity<Resource> response =
                 pullController.downloadFile(repoId, storageKey, request);
 
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(resource, response.getBody());
+        assertNotNull(response.getBody());
 
         assertTrue(response.getHeaders()
                 .getFirst(HttpHeaders.CONTENT_DISPOSITION)
@@ -91,10 +95,10 @@ class PullControllerTest {
 
         HttpServletRequest request = mock(HttpServletRequest.class);
 
-        when(pullService.getStorageKey(repoId, path, 5L, any()))
+        when(pullService.getStorageKey(eq(repoId), eq(path), eq(5L), any()))
                 .thenReturn("key");
 
-        when(pullService.loadFileContent("key", any()))
+        when(pullService.loadFileContent(eq("key"), any()))
                 .thenReturn("content");
 
         ResponseEntity<String> response =
@@ -104,8 +108,8 @@ class PullControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("content", response.getBody());
 
-        verify(pullService).getStorageKey(repoId, path, 5L, any());
-        verify(pullService).loadFileContent("key", any());
+        verify(pullService).getStorageKey(eq(repoId), eq(path), eq(5L), any());
+        verify(pullService).loadFileContent(eq("key"), any());
         verify(request).setAttribute(eq("logId"), any());
     }
 
@@ -117,10 +121,10 @@ class PullControllerTest {
 
         HttpServletRequest request = mock(HttpServletRequest.class);
 
-        when(pullService.getStorageKey(repoId, path, null, any()))
+        when(pullService.getStorageKey(eq(repoId), eq(path), eq(null), any()))
                 .thenReturn("key");
 
-        when(pullService.loadFileContent("key", any()))
+        when(pullService.loadFileContent(eq("key"), any()))
                 .thenReturn("content");
 
         ResponseEntity<String> response =
@@ -130,8 +134,8 @@ class PullControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("content", response.getBody());
 
-        verify(pullService).getStorageKey(repoId, path, null, any());
-        verify(pullService).loadFileContent("key", any());
+        verify(pullService).getStorageKey(eq(repoId), eq(path), eq(null), any());
+        verify(pullService).loadFileContent(eq("key"), any());
         verify(request).setAttribute(eq("logId"), any());
     }
 

@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.Resource;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -65,9 +66,11 @@ class PullServiceTest {
 
         ItemOutView remote = mock(ItemOutView.class);
         when(remote.getPath()).thenReturn("file.txt");
+        when(remote.getChecksum()).thenReturn("abc");
 
         LocalItemMetadata local = mock(LocalItemMetadata.class);
         when(local.getPath()).thenReturn("file.txt");
+        when(local.getChecksum()).thenReturn("abc");
 
         when(itemRevisionRepository.findLatestItemsForRepo(repoId))
                 .thenReturn(List.of(remote));
@@ -76,7 +79,6 @@ class PullServiceTest {
                 pullService.checkSyncStatus(repoId, List.of(local), "LOG1");
 
         assertEquals(1, result.size());
-
         assertNotNull(result.get(0).getStatus());
     }
 
@@ -105,20 +107,21 @@ class PullServiceTest {
         UUID repoId = UUID.randomUUID();
         String storageKey = "test.txt";
 
-        Path tempDir = Files.createTempDirectory("test-storage");
-        Path file = tempDir.resolve(storageKey);
+        Path storageDir = Path.of(System.getProperty("user.home"), "tuVCS_TEST_STORAGE");
+        Files.createDirectories(storageDir);
+
+        Path file = storageDir.resolve(storageKey);
         Files.writeString(file, "data");
 
-        setField(pullService, "STORAGE_PATH", tempDir.toString());
+        when(repositoryService.fetchRevision(repoId, null))
+                .thenReturn(List.of());
 
-        doNothing().when(repositoryService)
-                .fetchRevision(repoId, null);
-
-        Resource result =
+        Path result =
                 pullService.pullFileContent(repoId, storageKey, "LOG1");
 
         assertNotNull(result);
-        assertTrue(result.exists());
+        assertTrue(Files.exists(result));
+        assertEquals(file.toAbsolutePath(), result.toAbsolutePath());
     }
 
     @Test
@@ -127,14 +130,13 @@ class PullServiceTest {
         UUID repoId = UUID.randomUUID();
         String storageKey = "missing.txt";
 
-        Path tempDir = Files.createTempDirectory("test-storage");
+        Path storageDir = Path.of(System.getProperty("user.home"), "tuVCS_TEST_STORAGE");
+        Files.createDirectories(storageDir);
 
-        setField(pullService, "STORAGE_PATH", tempDir.toString());
+        when(repositoryService.fetchRevision(repoId, null))
+                .thenReturn(List.of());
 
-        doNothing().when(repositoryService)
-                .fetchRevision(repoId, null);
-
-        assertThrows(RuntimeException.class,
+        assertThrows(ResourceNotFoundException.class,
                 () -> pullService.pullFileContent(repoId, storageKey, "LOG1"));
     }
 
@@ -265,11 +267,11 @@ class PullServiceTest {
 
         String storageKey = "test.txt";
 
-        Path tempDir = Files.createTempDirectory("download");
-        Path file = tempDir.resolve(storageKey);
-        Files.writeString(file, "hello");
+        Path root = Path.of(CommitService.ROOT_DOWNLOAD_PATH);
+        Files.createDirectories(root);
 
-        setField(pullService, "ROOT_DOWNLOAD_PATH", tempDir.toString() + "/");
+        Path file = root.resolve(storageKey);
+        Files.writeString(file, "hello");
 
         String result = pullService.loadFileContent(storageKey, "LOG1");
 
@@ -279,9 +281,8 @@ class PullServiceTest {
     @Test
     void shouldThrowWhenLoadFileDoesNotExist() throws Exception {
 
-        Path tempDir = Files.createTempDirectory("download");
-
-        setField(pullService, "ROOT_DOWNLOAD_PATH", tempDir.toString() + "/");
+        Path root = Path.of(CommitService.ROOT_DOWNLOAD_PATH);
+        Files.createDirectories(root);
 
         assertThrows(IOException.class,
                 () -> pullService.loadFileContent("missing.txt", "LOG1"));
