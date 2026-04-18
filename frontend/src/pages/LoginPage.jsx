@@ -5,7 +5,13 @@ import { login } from '../components/auth'
 
 export default function LoginPage() {
   const [tab, setTab] = useState('signin')
+  const [showForm, setShowForm] = useState(false)
   const navigate = useNavigate()
+
+  const handleSelectTab = (nextTab) => {
+    setTab(nextTab)
+    setShowForm(true)
+  }
 
   const handleSubmit = (event) => {
     event.preventDefault()
@@ -14,12 +20,25 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthLayout>
+    <AuthLayout
+      selectedTab={tab}
+      onSelectTab={handleSelectTab}
+      showForm={showForm}
+    >
       <div className="tabs">
-        <button className={tab === 'signin' ? 'tab active' : 'tab'} onClick={() => setTab('signin')}>
+        <button
+          type="button"
+          className={tab === 'signin' ? 'tab active' : 'tab'}
+          onClick={() => setTab('signin')}
+        >
           Sign in
         </button>
-        <button className={tab === 'signup' ? 'tab active' : 'tab'} onClick={() => setTab('signup')}>
+
+        <button
+          type="button"
+          className={tab === 'signup' ? 'tab active' : 'tab'}
+          onClick={() => setTab('signup')}
+        >
           Create account
         </button>
       </div>
@@ -47,7 +66,9 @@ export default function LoginPage() {
             <span>Forgot password?</span>
           </div>
 
-          <button className="btn primary block" type="submit">Access platform</button>
+          <button className="btn primary block" type="submit">
+            Access platform
+          </button>
         </form>
       ) : (
         <form className="form-grid" onSubmit={handleSubmit}>
@@ -76,18 +97,6 @@ export default function LoginPage() {
           </label>
 
           <label className="field-label">
-            <span>Role</span>
-            <div className="field">
-              <span>🧩</span>
-              <select defaultValue="Contributor">
-                <option>Contributor</option>
-                <option>Maintainer</option>
-                <option>Administrator</option>
-              </select>
-            </div>
-          </label>
-
-          <label className="field-label">
             <span>Password</span>
             <div className="field">
               <span>🔐</span>
@@ -95,7 +104,9 @@ export default function LoginPage() {
             </div>
           </label>
 
-          <button className="btn primary block" type="submit">Create account</button>
+          <button className="btn primary block" type="submit">
+            Create account
+          </button>
         </form>
       )}
     </AuthLayout>
