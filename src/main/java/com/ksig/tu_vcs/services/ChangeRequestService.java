@@ -4,17 +4,24 @@ import com.ksig.tu_vcs.repos.*;
 import com.ksig.tu_vcs.repos.entities.AppUser;
 import com.ksig.tu_vcs.repos.entities.ChangeRequest;
 import com.ksig.tu_vcs.repos.entities.ChangeRequestItem;
+import com.ksig.tu_vcs.repos.entities.RepositoryMember;
 import com.ksig.tu_vcs.repos.entities.Revision;
 import com.ksig.tu_vcs.repos.entities.enums.Action;
 import com.ksig.tu_vcs.repos.entities.enums.ChangeRequestStatus;
+import com.ksig.tu_vcs.repos.entities.enums.Role;
+import com.ksig.tu_vcs.services.exceptions.ResourceNotFoundException;
 import com.ksig.tu_vcs.services.views.CreateCRView;
 import com.ksig.tu_vcs.services.views.ItemInView;
 import jakarta.transaction.Transactional;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class ChangeRequestService {
@@ -24,20 +31,31 @@ public class ChangeRequestService {
     private final ChangeRequestItemRepository changeRequestItemRepository;
     private final RevisionRepository revisionRepository;
     private final CommitService commitService;
+    private final RepositoryMemberRepository repositoryMemberRepository;
 
-    public ChangeRequestService(RepositoryRepository repositoryRepository, AppUserRepository appUserRepository, ChangeRequestRepository changeRequestRepository, ChangeRequestItemRepository changeRequestItemRepository, RevisionRepository revisionRepository, CommitService commitService) {
+    public ChangeRequestService(RepositoryRepository repositoryRepository, AppUserRepository appUserRepository,
+                                ChangeRequestRepository changeRequestRepository, ChangeRequestItemRepository changeRequestItemRepository,
+                                RevisionRepository revisionRepository, CommitService commitService,
+                                RepositoryMemberRepository repositoryMemberRepository) {
         this.repositoryRepository = repositoryRepository;
         this.appUserRepository = appUserRepository;
         this.changeRequestRepository = changeRequestRepository;
         this.changeRequestItemRepository = changeRequestItemRepository;
         this.revisionRepository = revisionRepository;
         this.commitService = commitService;
+        this.repositoryMemberRepository = repositoryMemberRepository;
     }
 
-    public ChangeRequest createChangeRequest(UUID repositoryId, UUID userId, CreateCRView view) {
+    public ChangeRequest createChangeRequest(UUID repositoryId, AppUser currentUser, CreateCRView view) {
+        Optional<RepositoryMember> currentMember =
+                repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
+        if (currentMember.isEmpty() || !currentMember.get().canCommit()) {
+            throw new AccessDeniedException("You cannot make change to this repository.");
+        }
+
         ChangeRequest changeRequest = new ChangeRequest();
         changeRequest.setRepository(repositoryRepository.getReferenceById(repositoryId));
-        changeRequest.setAuthor(appUserRepository.getReferenceById(userId));
+        changeRequest.setAuthor(appUserRepository.getReferenceById(currentUser.getId()));
         changeRequest.setBaseRevisionNumber(view.getBaseRevisionNUmber());
         changeRequest.setStatus(ChangeRequestStatus.PENDING);
         changeRequest.setTitle(view.getTittle());
@@ -47,37 +65,54 @@ public class ChangeRequestService {
     }
 
     @Transactional
-    public ChangeRequestItem addItemToChangeRequest(UUID changeRequestId, ItemInView view, MultipartFile file, String logId) {
+    public void addItemToChangeRequest(UUID repositoryId, AppUser currentUser,UUID changeRequestId, List<ItemInView> views, List<MultipartFile> files, String logId) {
+        Optional<RepositoryMember> currentMember =
+                repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
+        if (currentMember.isEmpty() || !currentMember.get().canCommit()) {
+            throw new AccessDeniedException("You cannot make change to this repository.");
+        }
+
         ChangeRequest changeRequest = changeRequestRepository.findById(changeRequestId)
                 .orElseThrow(() -> new RuntimeException("Change request not found"));
 
         if (changeRequest.getStatus() != ChangeRequestStatus.PENDING) {
             throw new RuntimeException("Cannot add item to a non-pending change request");
         }
+        //правя листа към мап с ключ името на файла, като разчитам че клиента ще опише връзките в ItemView
+        Map<String, MultipartFile> fileMap = files.stream()
+                .collect(Collectors.toMap(MultipartFile::getOriginalFilename, file -> file));
 
-        ChangeRequestItem changeRequestItem = new ChangeRequestItem();
-        changeRequestItem.setChangeRequest(changeRequest);
-        changeRequestItem.setPath(view.getPath());
-        changeRequestItem.setItemType(view.getItemType());
-        changeRequestItem.setAction(view.getAction());
+        for (ItemInView view : views) {
+            ChangeRequestItem changeRequestItem = new ChangeRequestItem();
+            changeRequestItem.setChangeRequest(changeRequest);
+            changeRequestItem.setPath(view.getPath());
+            changeRequestItem.setItemType(view.getItemType());
+            changeRequestItem.setAction(view.getAction());
+            MultipartFile file = fileMap.get(view.getPath());
+            if (view.getAction() != Action.DELETE) {
+                String storageKey = commitService.saveFileToStorage(file, logId);
 
-        if (view.getAction() != Action.DELETE) {
-            String storageKey = commitService.saveFileToStorage(file, logId);
+                changeRequestItem.setStorageKey(storageKey);
+                changeRequestItem.setFileSize(file.getSize());
+                changeRequestItem.setChecksum(view.getChecksum());
+            } else {
+                changeRequestItem.setStorageKey(null);
+                changeRequestItem.setFileSize(0L);
+                changeRequestItem.setChecksum(null);
+            }
 
-            changeRequestItem.setStorageKey(storageKey);
-            changeRequestItem.setFileSize(file.getSize());
-            changeRequestItem.setChecksum(view.getChecksum());
-        } else {
-            changeRequestItem.setStorageKey(null);
-            changeRequestItem.setFileSize(0L);
-            changeRequestItem.setChecksum(null);
+            changeRequestItemRepository.save(changeRequestItem);
         }
-
-        return changeRequestItemRepository.save(changeRequestItem);
     }
 
     @Transactional
     public void approveChangeRequest(UUID repositoryId, UUID changeRequestId, AppUser currentUser) {
+        Optional<RepositoryMember> currentMember =
+                repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
+        if (currentMember.isEmpty() || !currentMember.get().getRole().equals(Role.MASTER)) {
+            throw new AccessDeniedException("Only MASTER members can approve this change.");
+        }
+
         ChangeRequest changeRequest = changeRequestRepository.findById(changeRequestId)
                 .orElseThrow(() -> new RuntimeException("Change request not found"));
         Revision latestRevision = revisionRepository.findLatestRevision(repositoryId)
@@ -97,7 +132,13 @@ public class ChangeRequestService {
 
     }
 
-    public void rejectChangeRequest(UUID changeRequestId) {
+    public void rejectChangeRequest(UUID repositoryId, AppUser currentUser ,UUID changeRequestId) {
+        Optional<RepositoryMember> currentMember =
+                repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
+        if (currentMember.isEmpty() || !currentMember.get().getRole().equals(Role.MASTER)) {
+            throw new AccessDeniedException("Only MASTER members can reject this change.");
+        }
+
         ChangeRequest changeRequest = changeRequestRepository.findById(changeRequestId)
                 .orElseThrow(() -> new RuntimeException("Change request not found"));
 

@@ -80,6 +80,13 @@ public class RepositoryController {
         return ResponseEntity.ok(repositoryService.fetchRevision(repositoryId,revisionNumber));
     }
 
+    @GetMapping("/{repositoryId}/latestRevNumber")
+    public ResponseEntity<Long> latestRevisionNumber(@PathVariable("repositoryId") UUID repositoryId, HttpServletRequest request) {
+        String logId = UUID.randomUUID().toString();
+        request.setAttribute("logId", logId);
+        return ResponseEntity.ok(repositoryService.getLatestRevisionNumber(repositoryId));
+    }
+
     @PostMapping("/{repositoryId}/addMember")
     public ResponseEntity<String> addMember(@PathVariable("repositoryId") UUID repositoryId, @RequestParam("username") String username,
                                        @RequestParam("role")

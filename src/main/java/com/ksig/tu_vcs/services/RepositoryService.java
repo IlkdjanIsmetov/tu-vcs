@@ -37,12 +37,14 @@ public class RepositoryService {
     private final CommitService commitService;
     private final AppUserRepository appUserRepository;
     private final ConstructRepoService constructRepoService;
+    private final RevisionRepository revisionRepository;
 
 
     public RepositoryService(RepositoryRepository repositoryRepository, RepositoryMemberRepository repositoryMemberRepository,
                              UserContextUtil userContextUtil,
                              ItemRevisionRepository itemRevisionRepository, CommitService commitService,
-                             AppUserRepository appUserRepository, ConstructRepoService constructRepoService) {
+                             AppUserRepository appUserRepository, ConstructRepoService constructRepoService,
+                             RevisionRepository revisionRepository) {
         this.repositoryRepository = repositoryRepository;
         this.repositoryMemberRepository = repositoryMemberRepository;
         this.userContextUtil = userContextUtil;
@@ -50,6 +52,7 @@ public class RepositoryService {
         this.commitService = commitService;
         this.appUserRepository = appUserRepository;
         this.constructRepoService = constructRepoService;
+        this.revisionRepository = revisionRepository;
     }
 
     @Transactional
@@ -99,6 +102,18 @@ public class RepositoryService {
             return itemRevisionRepository.findLatestItemsForRepo(repositoryId);
         }
         return itemRevisionRepository.findAllFilesAtRevision(repositoryId, revisionNumber);
+    }
+
+    public Long getLatestRevisionNumber(UUID repositoryId) {
+        AppUser currentUser = userContextUtil.getCurrentUser();
+        Optional<RepositoryMember> currentMember =
+                repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
+        if (currentMember.isEmpty()) {
+            throw new AccessDeniedException("You do not have access to this repository.");
+        }
+        Revision revision = revisionRepository.findLatestRevision(repositoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Could not find latest revision for repository with id " + repositoryId));
+        return  revision.getRevisionNumber();
     }
 
     @Transactional
