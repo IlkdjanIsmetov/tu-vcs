@@ -41,7 +41,7 @@ public class TestSecurityConfig {
         return http.build();
     }
 
-    //филтър който праву фейк токен
+    //филтър който прави фейк токен
     private OncePerRequestFilter fakeJwtFilter() {
         return new OncePerRequestFilter() {
             @Override

@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class TuVcsApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(TuVcsApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(TuVcsApplication.class, args);
+    }
 
 }
