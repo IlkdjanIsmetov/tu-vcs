@@ -4,14 +4,17 @@ import com.ksig.tu_vcs.services.PullService;
 import com.ksig.tu_vcs.services.views.LocalItemMetadata;
 import com.ksig.tu_vcs.services.views.SyncItemView;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.ksig.tu_vcs.services.exceptions.ResourceNotFoundException;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,7 +29,7 @@ public class PullController {
 
     @PostMapping("/{repositoryId}/sync-status")
     public ResponseEntity<List<SyncItemView>> getSyncStatus(@PathVariable("repositoryId") UUID repositoryId,
-                                                            @RequestAttribute List<LocalItemMetadata> localManifest,
+                                                            @RequestBody List<LocalItemMetadata> localManifest,
                                                             HttpServletRequest request){
         String logId = UUID.randomUUID().toString();
         request.setAttribute("logId", logId);
@@ -36,13 +39,16 @@ public class PullController {
     @GetMapping("/{repositoryId}/content/{storageKey}")
     public ResponseEntity<Resource> downloadFile(@PathVariable UUID repositoryId,
                                                  @PathVariable String storageKey,
-                                                 HttpServletRequest request){
+                                                 HttpServletRequest request) throws IOException {
         String logId = UUID.randomUUID().toString();
         request.setAttribute("logId", logId);
-        Resource resource = pullService.pullFileContent(repositoryId,storageKey,logId);
+        Path filePath = pullService.pullFileContent(repositoryId,storageKey,logId);
+        Resource fileResource = new FileSystemResource(filePath);
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + storageKey + "\"")
-                .body(resource);
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileResource.getFilename() + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(fileResource.contentLength())
+                .body(fileResource);
     }
 
 

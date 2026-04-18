@@ -68,24 +68,18 @@ public class PullService {
     }
 
 
-    public Resource pullFileContent(UUID repositoryId, String storageKey, String logId) {
+    public Path pullFileContent(UUID repositoryId, String storageKey, String logId) {
         //Проверка на достъп и ревизия
         repositoryService.fetchRevision(repositoryId, null);
 
-        try {
-            Path filePath = Path.of(STORAGE_PATH).resolve(storageKey);
-            Resource resource = new UrlResource(filePath.toUri());
+        Path filePath = Path.of(STORAGE_PATH).resolve(storageKey);
 
-            if (resource.exists() || resource.isReadable()) {
-                log.info("{}: Successfully delivering file {}", logId, filePath.getFileName());
-                return resource;
-            } else {
-                log.error("{}: File not found: {}", logId, filePath.toAbsolutePath());
-                throw new RuntimeException("File is not found: " + storageKey);
-            }
-        } catch (IOException e) {
-            log.error("{}: Error reading the file! {}", logId, e.getMessage());
-            throw new RuntimeException("Cannot read the file: " + storageKey, e);
+        if (Files.exists(filePath)) {
+            log.info("{}: Successfully delivering file {}", logId, filePath.getFileName());
+            return filePath;
+        } else {
+            log.error("{}: File not found: {}", logId, filePath.toAbsolutePath());
+            throw new ResourceNotFoundException("File is not found: " + storageKey);
         }
     }
 

@@ -66,7 +66,7 @@ public class RepositoryService {
         repository.setName(view.getRepositoryName());
         repository.setDescription(view.getDescription());
         repository.setOwner(currentUser);
-        repository.setRequiresApprovalByDefault(true);
+        repository.setRequiresApprovalByDefault(view.isRequiresApprovalByDefault());
 
         repository = repositoryRepository.save(repository);
 
@@ -111,8 +111,10 @@ public class RepositoryService {
         if (currentMember.isEmpty()) {
             throw new AccessDeniedException("You do not have access to this repository.");
         }
-        Revision revision = revisionRepository.findLatestRevision(repositoryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Could not find latest revision for repository with id " + repositoryId));
+        Revision revision = revisionRepository.findLatestRevision(repositoryId).orElse(null);
+        if (revision == null) {
+            return 0L;
+        }
         return  revision.getRevisionNumber();
     }
 

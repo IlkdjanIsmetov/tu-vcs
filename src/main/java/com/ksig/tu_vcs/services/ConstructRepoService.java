@@ -21,6 +21,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -81,10 +82,18 @@ public class ConstructRepoService {
             }
             Path zipPath = Path.of(TEMP_ZIP_DIR).resolve(repo.getName() + ".zip");
             zipDirectory(repoRoot, zipPath, items, repoOut);
+            deleteDirectory(repoRoot, logId);
             return zipPath;
         } catch (IOException e) {
             log.error("{}: Error creating zipped repo.", logId, e);
             throw new RuntimeException("Error while cloning repo!");
+        }
+    }
+
+    private void deleteDirectory(Path dir, String logId) throws IOException {
+        try (Stream<Path> walk = Files.walk(dir)){
+            walk.sorted(Comparator.reverseOrder())
+                    .forEach(p -> { try { Files.delete(p); } catch (IOException e) { log.error("{}: Failed to delete file", logId, e); } });
         }
     }
 

@@ -15,6 +15,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -55,7 +56,7 @@ class PullControllerTest {
     }
 
     @Test
-    void shouldDownloadFile() {
+    void shouldDownloadFile() throws IOException {
 
         UUID repoId = UUID.randomUUID();
         String storageKey = "file.txt";
@@ -65,7 +66,7 @@ class PullControllerTest {
         Resource resource = mock(Resource.class);
 
         when(pullService.pullFileContent(eq(repoId), eq(storageKey), any()))
-                .thenReturn(resource);
+                .thenReturn(resource.getFilePath());
 
         ResponseEntity<Resource> response =
                 pullController.downloadFile(repoId, storageKey, request);
