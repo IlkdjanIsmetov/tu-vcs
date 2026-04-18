@@ -5,16 +5,13 @@ export default function DashboardPage() {
   return (
     <AppLayout subtitle="Build together. Ship faster.">
       <section className="hero">
-        <span className="badge">⚡ Dashboard overview</span>
+        <span className="badge">TU-VCS</span>
         <h2>Build together. Ship faster.</h2>
         <p>
-          Centralized React workspace for repositories, activity monitoring,
-          secure access and team coordination.
+          Web workspace for repository management, authentication,
+          team collaboration, activity tracking and profile visualization.
         </p>
-        <div className="hero-actions">
-          <button className="btn primary">Open repositories</button>
-          <button className="btn secondary">View activity</button>
-        </div>
+
       </section>
 
       <section className="grid-4">
