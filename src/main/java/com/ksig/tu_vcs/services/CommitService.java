@@ -103,11 +103,17 @@ public class CommitService {
     }
 
     private void addFile(UUID repositoryId, ItemInView itemInView, MultipartFile file, Revision revision, String logId) {
-        Item item = new Item();
-        item.setRepository(repositoryRepository.getReferenceById(repositoryId));
-        item.setItemType(ItemType.FILE);
-        item.setPath(itemInView.getPath());
-        item = itemRepository.save(item);
+        Optional<Item> existingItem = itemRepository.findByRepositoryIdAndPath(repositoryId, itemInView.getPath());
+        Item item = null;
+        if (existingItem.isEmpty()) {
+            item = new Item();
+            item.setRepository(repositoryRepository.getReferenceById(repositoryId));
+            item.setItemType(ItemType.FILE);
+            item.setPath(itemInView.getPath());
+            item = itemRepository.save(item);
+        } else {
+            item = existingItem.get();
+        }
         String storageKey = saveFileToStorage(file, logId);
         ItemRevision itemRevision = new ItemRevision();
         itemRevision.setItem(item);
