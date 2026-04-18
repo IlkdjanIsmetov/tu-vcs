@@ -2,6 +2,7 @@ package com.ksig.tu_vcs.services;
 
 import com.ksig.tu_vcs.repos.ItemRevisionRepository;
 import com.ksig.tu_vcs.repos.entities.ItemRevision;
+import com.ksig.tu_vcs.repos.entities.enums.ItemType;
 import com.ksig.tu_vcs.services.exceptions.ResourceNotFoundException;
 import com.ksig.tu_vcs.services.views.*;
 import com.ksig.tu_vcs.repos.entities.enums.SyncStatus;
@@ -85,6 +86,9 @@ public class PullService {
 
 
     private SyncStatus calculateSyncStatus(ItemOutView remote, LocalItemMetadata local) {
+        if (remote.getItemType() == ItemType.DIRECTORY) {
+            return SyncStatus.UP_TO_DATE;
+        }
         // 1. Пълно съвпадение
         if (remote.getChecksum().equals(local.getChecksum())) {
             return SyncStatus.UP_TO_DATE;

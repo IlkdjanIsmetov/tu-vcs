@@ -91,9 +91,15 @@ public class ConstructRepoService {
     }
 
     private void deleteDirectory(Path dir, String logId) throws IOException {
-        try (Stream<Path> walk = Files.walk(dir)){
+        try (Stream<Path> walk = Files.walk(dir)) {
             walk.sorted(Comparator.reverseOrder())
-                    .forEach(p -> { try { Files.delete(p); } catch (IOException e) { log.error("{}: Failed to delete file", logId, e); } });
+                    .forEach(p -> {
+                        try {
+                            Files.delete(p);
+                        } catch (IOException e) {
+                            log.error("{}: Failed to delete file", logId, e);
+                        }
+                    });
         }
     }
 
@@ -134,11 +140,13 @@ public class ConstructRepoService {
             String repoMeta = "/.tu_vcs_repo/repo.json";
             ZipEntry zipEntry = new ZipEntry(repoMeta);
             zos.putNextEntry(zipEntry);
-            zos.write(objectMapper.writeValueAsBytes(repo));            zos.closeEntry();
+            zos.write(objectMapper.writeValueAsBytes(repo));
+            zos.closeEntry();
             String itemMeta = "/.tu_vcs_repo/items.json";
             zipEntry = new ZipEntry(itemMeta);
             zos.putNextEntry(zipEntry);
-            zos.write(objectMapper.writeValueAsBytes(items));            zos.closeEntry();
+            zos.write(objectMapper.writeValueAsBytes(items));
+            zos.closeEntry();
         }
     }
 }
