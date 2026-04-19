@@ -33,3 +33,5 @@ package-lock.json
 
 ### VS Code ###
 .vscode/
+
+/frontend/.vite/
