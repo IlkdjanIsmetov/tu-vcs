@@ -17,7 +17,6 @@ export function UserProvider({ children }) {
     setLoading(false)
   }, [])
 
-  // Call this after login so all pages immediately get user info
   const refreshUser = () => {
     setUser(getUserInfo())
   }
@@ -29,7 +28,6 @@ export function UserProvider({ children }) {
   )
 }
 
-// Convenience hook
 export function useUser() {
   return useContext(UserContext)
 }

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -31,22 +32,23 @@ public class UserSyncFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication instanceof JwtAuthenticationToken jwtAuthToken) {
             Jwt jwt = jwtAuthToken.getToken();
             UUID userId = UUID.fromString(jwt.getClaimAsString("sub"));
             Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-            List<String> roles = (List<String>) realmAccess.get("roles");
-
+            List<String> roles = realmAccess != null
+                    ? (List<String>) realmAccess.get("roles")
+                    : Collections.emptyList();
 
             if (!appUserRepository.existsById(userId)) {
                 AppUser newUser = new AppUser();
                 newUser.setId(userId);
                 newUser.setUsername(jwt.getClaimAsString("preferred_username"));
                 newUser.setEmail(jwt.getClaimAsString("email"));
-                if (roles != null && roles.contains("ADMIN")) {
+                if (roles != null && roles.contains("admin")) {
                     newUser.setSystemRole(SystemRole.ADMIN);
                 } else {
                     newUser.setSystemRole(SystemRole.USER);

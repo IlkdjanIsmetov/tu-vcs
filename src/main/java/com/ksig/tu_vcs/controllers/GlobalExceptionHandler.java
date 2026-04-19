@@ -10,6 +10,7 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -28,15 +29,15 @@ public class GlobalExceptionHandler {
         errorView.setLogId(logId);
         errorView.setMessage(message);
         errorView.setTimestamp(LocalDateTime.now());
-        
+
         return errorView;
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorView> handleValidationErrors(
-            MethodArgumentNotValidException ex, 
+            MethodArgumentNotValidException ex,
             HttpServletRequest request) {
-        
+
         String errorMessage = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
@@ -50,9 +51,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
     public ResponseEntity<ErrorView> handleBadArguments(
-            RuntimeException ex, 
+            RuntimeException ex,
             HttpServletRequest request) {
-        
+
         ErrorView view = buildErrorView(ex.getMessage(), request);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(view);
     }
@@ -68,6 +69,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceAlreadyExistsException.class)
     public ResponseEntity<ErrorView> handleAlreadyExists(ResourceAlreadyExistsException ex, HttpServletRequest request) {
         ErrorView view = buildErrorView(ex.getMessage(), request);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(view);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorView> handleAccessDenied(
+            AccessDeniedException ex, HttpServletRequest request) {
+        ErrorView view = buildErrorView("Access denied: " + ex.getMessage(), request);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(view);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorView> handleDataIntegrity(
+            DataIntegrityViolationException ex, HttpServletRequest request) {
+        ErrorView view = buildErrorView("Data integrity error: " + ex.getMostSpecificCause().getMessage(), request);
         return ResponseEntity.status(HttpStatus.CONFLICT).body(view);
     }
 
@@ -87,7 +102,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorView> handleAllOtherExceptions(
-            Exception ex, 
+            Exception ex,
             HttpServletRequest request) {
         ErrorView view = buildErrorView("An unexpected error occurred. " + ex.getMessage(), request);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(view);

@@ -31,6 +31,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/repositories")
+@CrossOrigin(origins = "*")
 public class RepositoryController {
     private final RepositoryService repositoryService;
     private final UserContextUtil userContextUtil;

@@ -11,9 +11,13 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -31,8 +35,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        // Auth endpoints must be public - user is not logged in yet
                         .requestMatchers("/api/auth/register").permitAll()
                         .requestMatchers("/api/auth/forgot-password").permitAll()
                         .anyRequest().authenticated()
@@ -46,6 +50,18 @@ public class SecurityConfig {
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        config.setAllowedHeaders(List.of("*"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
+    @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(this::extractResourceRoles);
@@ -55,13 +71,8 @@ public class SecurityConfig {
     @SuppressWarnings("unchecked")
     private Collection<GrantedAuthority> extractResourceRoles(Jwt jwt) {
         Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-
-        if (realmAccess == null || realmAccess.isEmpty()) {
-            return Collections.emptyList();
-        }
-
+        if (realmAccess == null || realmAccess.isEmpty()) return Collections.emptyList();
         Collection<String> roles = (Collection<String>) realmAccess.get("roles");
-
         return roles.stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
                 .collect(Collectors.toList());

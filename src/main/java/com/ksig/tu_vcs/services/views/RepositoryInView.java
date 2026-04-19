@@ -3,10 +3,12 @@ package com.ksig.tu_vcs.services.views;
 import com.ksig.tu_vcs.repos.entities.Repository;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.UUID;
 
 @Getter
+@Setter
 @NoArgsConstructor
 public class RepositoryInView {
     private String repositoryName;
