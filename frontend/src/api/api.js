@@ -1,0 +1,87 @@
+import { getAccessToken, logout } from '../components/auth'
+
+const BACKEND = ''
+
+async function request(path, options = {}) {
+  const token = getAccessToken()
+
+  let res
+  try {
+    res = await fetch(`${BACKEND}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
+    })
+  } catch {
+    return null
+  }
+
+  if (res.status === 401) {
+    logout()
+    return null
+  }
+
+  return res
+}
+
+export const repositoryApi = {
+  getAll: async () => {
+    const res = await request('/api/repositories/all')
+    if (!res) return null
+    if (!res.ok) return []
+    return res.json()
+  },
+
+  getMy: async () => {
+    const res = await request('/api/repositories/my')
+    if (!res || !res.ok) return []
+    return res.json()
+  },
+
+  search: async (q) => {
+    const res = await request(`/api/repositories/search?q=${encodeURIComponent(q)}`)
+    if (!res || !res.ok) return []
+    return res.json()
+  },
+
+  create: async (data) => {
+    const res = await request('/api/repositories/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+    if (!res) return { success: false, error: 'Not authenticated.' }
+    if (res.ok) return { success: true, data: await res.json() }
+    const err = await res.json().catch(() => ({}))
+    return { success: false, error: err.message || 'Failed to create repository.' }
+  },
+
+  delete: async (id) => {
+    const res = await request(`/api/repositories/${id}`, { method: 'DELETE' })
+    if (!res) return { success: false }
+    return { success: res.ok }
+  },
+}
+
+export const userApi = {
+  getAll: async () => {
+    const res = await request('/api/users')
+    if (!res || !res.ok) return []
+    return res.json()
+  },
+}
+
+export const profileApi = {
+  update: async (data) => {
+    const res = await request('/api/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+    if (!res) return { success: false, error: 'Not authenticated.' }
+    if (res.ok) return { success: true }
+    const err = await res.json().catch(() => ({}))
+    return { success: false, error: err.message || 'Failed to update profile.' }
+  },
+}
