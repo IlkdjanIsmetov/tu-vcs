@@ -185,3 +185,39 @@ img{display:block}
   .auth-wrap{padding:16px}
   .topnav{display:none}
 }
+.form-error {
+  color: #ff6b6b;
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  background: rgba(255, 107, 107, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid #ff6b6b;
+}
+
+.form-success {
+  color: #22d3ee;
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  background: rgba(34, 211, 238, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid #22d3ee;
+}
+
+.side-user {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.side-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+
+

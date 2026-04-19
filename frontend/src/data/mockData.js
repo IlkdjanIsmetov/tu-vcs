@@ -62,3 +62,31 @@ export const profile = {
   collaborativeProjects: 8,
   pendingApprovals: 2,
 }
+//
+// // 1. Първо импортни функцията за токена най-горе във файла
+// import { getAccessToken } from '../components/auth';
+//
+// // 2. Намери функцията fetchRepositories и я направи така:
+// const fetchRepositories = async () => {
+//   try {
+//     const token = getAccessToken(); // Вземаме "ключа" от Keycloak
+//
+//     const response = await fetch('http://localhost:8080/api/repositories', {
+//       method: 'GET',
+//       headers: {
+//         'Content-Type': 'application/json',
+//         // ЕТО ТОВА Е ТОЧКА 3 - изпращаме токена към Spring Boot
+//         'Authorization': `Bearer ${token}`
+//       }
+//     });
+//
+//     if (!response.ok) {
+//       throw new Error('Грешка при зареждане на данните');
+//     }
+//
+//     const data = await response.json();
+//     setRepositories(data); // Записваме данните в екрана
+//   } catch (error) {
+//     console.error("Грешка:", error);
+//   }
+// };

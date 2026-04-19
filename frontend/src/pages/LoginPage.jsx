@@ -1,114 +1,199 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AuthLayout from '../components/AuthLayout'
-import { login } from '../components/auth'
+import { login, registerUser, forgotPassword } from '../components/auth'
+import { useUser } from '../context/UserContext'
 
 export default function LoginPage() {
-  const [tab, setTab] = useState('signin')
-  const [showForm, setShowForm] = useState(false)
+  const [tab, setTab]       = useState('login')
+  const [error, setError]   = useState('')
+  const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { refreshUser } = useUser()
 
-  const handleSelectTab = (nextTab) => {
-    setTab(nextTab)
-    setShowForm(true)
+  const [formData, setFormData] = useState({
+    username: '', password: '', email: '', fullName: '',
+  })
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+    setError('')
+    setMessage('')
   }
 
-  const handleSubmit = (event) => {
-    event.preventDefault()
-    login()
-    navigate('/dashboard')
+  const handleTabChange = (newTab) => {
+    setTab(newTab)
+    setError('')
+    setMessage('')
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setMessage('')
+    setLoading(true)
+
+    if (tab === 'login') {
+      const res = await login(formData.username, formData.password)
+      if (res.success) {
+        refreshUser()
+        navigate('/dashboard')
+      } else {
+        setError(res.error)
+      }
+
+    } else if (tab === 'signup') {
+      if (!formData.fullName.trim()) {
+        setError('Full name is required.')
+        setLoading(false)
+        return
+      }
+      const res = await registerUser(formData)
+      if (res.success) {
+        setMessage('Account created! You can now sign in.')
+        handleTabChange('login')
+      } else {
+        setError(res.error)
+      }
+
+    } else if (tab === 'forgot') {
+      if (!formData.email.trim()) {
+        setError('Please enter your email address.')
+        setLoading(false)
+        return
+      }
+      await forgotPassword(formData.email)
+      setMessage('If that email exists, you will receive reset instructions shortly.')
+    }
+
+    setLoading(false)
   }
 
   return (
-    <AuthLayout
-      selectedTab={tab}
-      onSelectTab={handleSelectTab}
-      showForm={showForm}
-    >
-      <div className="tabs">
-        <button
-          type="button"
-          className={tab === 'signin' ? 'tab active' : 'tab'}
-          onClick={() => setTab('signin')}
-        >
-          Sign in
-        </button>
+      <AuthLayout showForm selectedTab={tab} onSelectTab={handleTabChange}>
 
-        <button
-          type="button"
-          className={tab === 'signup' ? 'tab active' : 'tab'}
-          onClick={() => setTab('signup')}
-        >
-          Create account
-        </button>
-      </div>
-
-      {tab === 'signin' ? (
-        <form className="form-grid" onSubmit={handleSubmit}>
-          <label className="field-label">
-            <span>Username</span>
-            <div className="field">
-              <span>👤</span>
-              <input required placeholder="Enter username" />
-            </div>
-          </label>
-
-          <label className="field-label">
-            <span>Password</span>
-            <div className="field">
-              <span>🔐</span>
-              <input required type="password" placeholder="Enter password" />
-            </div>
-          </label>
-
-          <div className="helper-row">
-            <span>Secure authentication</span>
-            <span>Forgot password?</span>
-          </div>
-
-          <button className="btn primary block" type="submit">
-            Access platform
+        <div className="tabs">
+          <button
+              type="button"
+              className={tab === 'login' ? 'tab active' : 'tab'}
+              onClick={() => handleTabChange('login')}
+          >
+            Sign in
           </button>
-        </form>
-      ) : (
-        <form className="form-grid" onSubmit={handleSubmit}>
-          <label className="field-label">
-            <span>Full name</span>
-            <div className="field">
-              <span>🪪</span>
-              <input required placeholder="Enter full name" />
-            </div>
-          </label>
-
-          <label className="field-label">
-            <span>Email</span>
-            <div className="field">
-              <span>📧</span>
-              <input required type="email" placeholder="Enter email" />
-            </div>
-          </label>
-
-          <label className="field-label">
-            <span>Username</span>
-            <div className="field">
-              <span>👤</span>
-              <input required placeholder="Choose username" />
-            </div>
-          </label>
-
-          <label className="field-label">
-            <span>Password</span>
-            <div className="field">
-              <span>🔐</span>
-              <input required type="password" placeholder="Create password" />
-            </div>
-          </label>
-
-          <button className="btn primary block" type="submit">
+          <button
+              type="button"
+              className={tab === 'signup' ? 'tab active' : 'tab'}
+              onClick={() => handleTabChange('signup')}
+          >
             Create account
           </button>
+        </div>
+
+        <form className="form-grid" onSubmit={handleSubmit}>
+
+          {error   && <div className="form-error">{error}</div>}
+          {message && <div className="form-success">{message}</div>}
+
+          {tab === 'signup' && (
+              <>
+                <label className="field-label">
+                  <span>Full name</span>
+                  <div className="field">
+                    <span>🪪</span>
+                    <input
+                        name="fullName"
+                        required
+                        placeholder="Enter full name"
+                        value={formData.fullName}
+                        onChange={handleChange}
+                    />
+                  </div>
+                </label>
+              </>
+          )}
+
+          {(tab === 'signup' || tab === 'forgot') && (
+              <label className="field-label">
+                <span>Email</span>
+                <div className="field">
+                  <span>📧</span>
+                  <input
+                      name="email"
+                      type="email"
+                      required
+                      placeholder="Enter email"
+                      value={formData.email}
+                      onChange={handleChange}
+                  />
+                </div>
+              </label>
+          )}
+
+          {(tab === 'login' || tab === 'signup') && (
+              <label className="field-label">
+                <span>Username</span>
+                <div className="field">
+                  <span>👤</span>
+                  <input
+                      name="username"
+                      required
+                      placeholder="Enter username"
+                      value={formData.username}
+                      onChange={handleChange}
+                  />
+                </div>
+              </label>
+          )}
+
+          {(tab === 'login' || tab === 'signup') && (
+              <label className="field-label">
+                <span>Password</span>
+                <div className="field">
+                  <span>🔐</span>
+                  <input
+                      name="password"
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      value={formData.password}
+                      onChange={handleChange}
+                  />
+                </div>
+              </label>
+          )}
+
+          {tab === 'login' && (
+              <div className="helper-row">
+                <span>Secure authentication</span>
+                <span
+                    style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                    onClick={() => handleTabChange('forgot')}
+                >
+              Forgot password?
+            </span>
+              </div>
+          )}
+
+          <button className="btn primary block" type="submit" disabled={loading}>
+            {loading ? 'Please wait…' : (
+                tab === 'login'  ? 'Access platform'  :
+                    tab === 'signup'  ? 'Create account'   :
+                        'Send reset email'
+            )}
+          </button>
+
+
+          {tab === 'forgot' && (
+              <button
+                  type="button"
+                  className="btn secondary block"
+                  onClick={() => handleTabChange('login')}
+              >
+                Back to sign in
+              </button>
+          )}
         </form>
-      )}
-    </AuthLayout>
+      </AuthLayout>
   )
 }

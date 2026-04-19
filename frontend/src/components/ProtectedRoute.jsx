@@ -1,9 +1,12 @@
 import { Navigate } from 'react-router-dom'
-import { isAuthenticated } from './auth'
+import { getAccessToken, isTokenExpired } from './auth'
 
 export default function ProtectedRoute({ children }) {
-  if (!isAuthenticated()) {
+  const token = getAccessToken()
+
+  if (!token || isTokenExpired()) {
     return <Navigate to="/" replace />
   }
+
   return children
 }
