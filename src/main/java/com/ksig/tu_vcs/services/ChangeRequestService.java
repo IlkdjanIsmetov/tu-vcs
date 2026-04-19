@@ -8,6 +8,7 @@ import com.ksig.tu_vcs.repos.entities.RepositoryMember;
 import com.ksig.tu_vcs.repos.entities.Revision;
 import com.ksig.tu_vcs.repos.entities.enums.Action;
 import com.ksig.tu_vcs.repos.entities.enums.ChangeRequestStatus;
+import com.ksig.tu_vcs.repos.entities.enums.ItemType;
 import com.ksig.tu_vcs.repos.entities.enums.Role;
 import com.ksig.tu_vcs.services.exceptions.ResourceNotFoundException;
 import com.ksig.tu_vcs.services.views.CreateCRView;
@@ -88,13 +89,19 @@ public class ChangeRequestService {
             changeRequestItem.setPath(view.getPath());
             changeRequestItem.setItemType(view.getItemType());
             changeRequestItem.setAction(view.getAction());
-            MultipartFile file = fileMap.get(view.getPath());
-            if (view.getAction() != Action.DELETE) {
+            if (view.getAction() != Action.DELETE && view.getItemType() == ItemType.FILE) {
+                MultipartFile file = fileMap.get(view.getFileRef());
+
+                if (file == null) {
+                    throw new RuntimeException("Missing multipart file payload for reference: " + view.getFileRef());
+                }
+
                 String storageKey = commitService.saveFileToStorage(file, logId);
 
                 changeRequestItem.setStorageKey(storageKey);
                 changeRequestItem.setFileSize(file.getSize());
                 changeRequestItem.setChecksum(view.getChecksum());
+
             } else {
                 changeRequestItem.setStorageKey(null);
                 changeRequestItem.setFileSize(0L);
