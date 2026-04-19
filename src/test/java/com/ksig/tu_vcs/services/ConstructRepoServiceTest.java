@@ -1,30 +1,36 @@
 package com.ksig.tu_vcs.services;
 
-import com.ksig.tu_vcs.repos.RepositoryRepository;
 import com.ksig.tu_vcs.repos.ItemRevisionRepository;
+import com.ksig.tu_vcs.repos.RepositoryRepository;
 import com.ksig.tu_vcs.repos.RevisionRepository;
 import com.ksig.tu_vcs.repos.entities.Repository;
 import com.ksig.tu_vcs.repos.entities.Revision;
 import com.ksig.tu_vcs.repos.entities.enums.ItemType;
 import com.ksig.tu_vcs.services.views.ItemOutView;
-
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import java.lang.reflect.Field;
+
+//TO DO: find a solution to the infinity recursion (depth = 500 > crash)
+
 
 @ExtendWith(MockitoExtension.class)
 class ConstructRepoServiceTest {
@@ -41,8 +47,46 @@ class ConstructRepoServiceTest {
     @InjectMocks
     private ConstructRepoService constructRepoService;
 
+    private Path tempRoot;
+    private Path storageRoot;
+
+    @AfterEach
+    void cleanup() throws Exception {
+        if (tempRoot != null && Files.exists(tempRoot)) {
+            Files.walk(tempRoot)
+                    .sorted((a, b) -> b.compareTo(a))
+                    .forEach(p -> {
+                        try { Files.delete(p); } catch (Exception ignored) {}
+                    });
+        }
+
+        if (storageRoot != null && Files.exists(storageRoot)) {
+            Files.walk(storageRoot)
+                    .sorted((a, b) -> b.compareTo(a))
+                    .forEach(p -> {
+                        try { Files.delete(p); } catch (Exception ignored) {}
+                    });
+        }
+
+        RequestContextHolder.resetRequestAttributes();
+    }
+
+    private void setupRequestContext() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("localhost");
+        request.setServerPort(8080);
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+    }
+
     @Test
     void shouldConstructZipFolder() throws Exception {
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("localhost");
+        request.setServerPort(8080);
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
         UUID repoId = UUID.randomUUID();
 
@@ -57,15 +101,14 @@ class ConstructRepoServiceTest {
         when(file.getItemType()).thenReturn(ItemType.FILE);
         when(file.getPath()).thenReturn("file.txt");
         when(file.getStorageKey()).thenReturn("file.txt");
+        when(file.getRevisionNumber()).thenReturn(1L);
+        when(file.getId()).thenReturn(UUID.randomUUID());
+        when(file.getChecksum()).thenReturn("abc");
 
-        Path tempStorage = Files.createTempDirectory("storage");
-        Path storedFile = tempStorage.resolve("file.txt");
+        Path storageRoot = Path.of(CommitService.ROOT_DOWNLOAD_PATH);
+        Files.createDirectories(storageRoot);
+        Path storedFile = storageRoot.resolve("file.txt");
         Files.writeString(storedFile, "data");
-
-        Path tempZip = Files.createTempDirectory("zip");
-
-        setField(constructRepoService, "TEMP_ZIP_DIR", tempZip.toString());
-        setStaticField(CommitService.class, "ROOT_DOWNLOAD_PATH", tempStorage.toString());
 
         when(itemRevisionRepository.findLatestItemsForRepo(repoId))
                 .thenReturn(List.of(file));
@@ -76,14 +119,39 @@ class ConstructRepoServiceTest {
         when(revisionRepository.findLatestRevision(repoId))
                 .thenReturn(Optional.of(revision));
 
+        ObjectMapper safeMapper = new ObjectMapper();
+        safeMapper.isEnabled(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+
+        ReflectionTestUtils.setField(
+                constructRepoService,
+                "objectMapper",
+                safeMapper
+        );
+
         Path result = constructRepoService.constructZipFolder(repoId, "LOG1");
 
         assertNotNull(result);
+        assertTrue(Files.exists(result));
+        assertTrue(result.toString().endsWith(".zip"));
+
+        RequestContextHolder.resetRequestAttributes();
     }
+
     @Test
     void shouldThrowWhenIOExceptionOccurs() throws Exception {
 
+        setupRequestContext();
+
         UUID repoId = UUID.randomUUID();
+
+        tempRoot = Files.createTempDirectory("zip-root");
+        storageRoot = Files.createTempDirectory("storage-root");
+
+        ReflectionTestUtils.setField(
+                constructRepoService,
+                "objectMapper",
+                new ObjectMapper()
+        );
 
         Repository repo = new Repository();
         repo.setId(repoId);
@@ -96,11 +164,9 @@ class ConstructRepoServiceTest {
         when(file.getItemType()).thenReturn(ItemType.FILE);
         when(file.getPath()).thenReturn("file.txt");
         when(file.getStorageKey()).thenReturn("missing.txt");
-
-        Path tempZip = Files.createTempDirectory("zip");
-
-        setField(constructRepoService, "TEMP_ZIP_DIR", tempZip.toString());
-        setStaticField(CommitService.class, "ROOT_DOWNLOAD_PATH", tempZip.toString());
+        when(file.getRevisionNumber()).thenReturn(1L);
+        when(file.getId()).thenReturn(UUID.randomUUID());
+        when(file.getChecksum()).thenReturn("abc");
 
         when(itemRevisionRepository.findLatestItemsForRepo(repoId))
                 .thenReturn(List.of(file));
@@ -114,17 +180,4 @@ class ConstructRepoServiceTest {
         assertThrows(RuntimeException.class,
                 () -> constructRepoService.constructZipFolder(repoId, "LOG1"));
     }
-
-    private void setField(Object target, String fieldName, Object value) throws Exception {
-        Field field = target.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
-    }
-
-    private void setStaticField(Class<?> clazz, String fieldName, Object value) throws Exception {
-        Field field = clazz.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(null, value);
-    }
-
 }

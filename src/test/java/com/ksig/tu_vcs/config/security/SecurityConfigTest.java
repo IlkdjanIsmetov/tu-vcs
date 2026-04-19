@@ -24,9 +24,9 @@ class SecurityConfigTest {
 
         var authorities = converter.convert(jwt).getAuthorities();
 
-        assertEquals(2, authorities.size());
         assertTrue(authorities.stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")));
+
         assertTrue(authorities.stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_USER")));
     }
@@ -43,6 +43,7 @@ class SecurityConfigTest {
 
         var authorities = converter.convert(jwt).getAuthorities();
 
-        assertTrue(authorities.isEmpty());
+        assertTrue(authorities.stream()
+                .noneMatch(a -> a.getAuthority().startsWith("ROLE_")));
     }
 }

@@ -47,7 +47,7 @@ class CommitServiceTest {
     private CommitService commitService;
 
     @Test
-    void shouldApplyChangesSuccessfully() {
+    void shouldApplyChangesSuccessfully() throws Exception {
 
         UUID repoId = UUID.randomUUID();
 
@@ -68,6 +68,8 @@ class CommitServiceTest {
 
         MultipartFile file = mock(MultipartFile.class);
         when(file.getOriginalFilename()).thenReturn("file.txt");
+        when(file.getInputStream()).thenReturn(new ByteArrayInputStream("data".getBytes()));
+        when(file.getSize()).thenReturn(4L);
 
         String result = spyService.applyChange(
                 repoId,
@@ -232,13 +234,13 @@ class CommitServiceTest {
         when(file.getInputStream())
                 .thenReturn(new ByteArrayInputStream("data".getBytes()));
 
-        Path tempDir = Files.createTempDirectory("storage");
-        setField(commitService, "ROOT_DOWNLOAD_PATH", tempDir.toString());
+        Path root = Path.of(CommitService.ROOT_DOWNLOAD_PATH);
+        Files.createDirectories(root);
 
         String result = commitService.saveFileToStorage(file, "LOG1");
 
         assertNotNull(result);
-        assertTrue(Files.exists(tempDir.resolve(result)));
+        assertTrue(Files.exists(root.resolve(result)));
     }
 
     @Test
@@ -247,8 +249,8 @@ class CommitServiceTest {
         MultipartFile file = mock(MultipartFile.class);
         when(file.getInputStream()).thenThrow(new IOException());
 
-        Path tempDir = Files.createTempDirectory("storage");
-        setField(commitService, "ROOT_DOWNLOAD_PATH", tempDir.toString());
+        Path root = Path.of(CommitService.ROOT_DOWNLOAD_PATH);
+        Files.createDirectories(root);
 
         assertThrows(CommitException.class,
                 () -> commitService.saveFileToStorage(file, "LOG1"));
