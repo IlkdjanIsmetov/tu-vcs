@@ -6,6 +6,7 @@ import com.ksig.tu_vcs.repos.entities.Repository;
 import com.ksig.tu_vcs.repos.entities.enums.Role;
 import com.ksig.tu_vcs.services.CommitService;
 import com.ksig.tu_vcs.services.RepositoryService;
+import com.ksig.tu_vcs.services.views.CommitHistoryView;
 import com.ksig.tu_vcs.services.views.ItemInView;
 import com.ksig.tu_vcs.services.views.ItemOutView;
 import com.ksig.tu_vcs.services.views.RepositoryInView;
@@ -69,6 +70,13 @@ public class RepositoryController {
         String logId = UUID.randomUUID().toString();
         request.setAttribute("logId", logId);
         return ResponseEntity.ok(repositoryService.commitDirectly(repositoryId, items, files, message, logId));
+    }
+
+    @GetMapping(path = "/{repositoryId}/history")
+    public ResponseEntity<List<CommitHistoryView>> getHistory(@PathVariable("repositoryId") UUID repositoryId, HttpServletRequest request) {
+        String logId = UUID.randomUUID().toString();
+        request.setAttribute("logId", logId);
+        return ResponseEntity.ok(repositoryService.getHistory(repositoryId));
     }
 
     @GetMapping("/{repositoryId}/fetch")

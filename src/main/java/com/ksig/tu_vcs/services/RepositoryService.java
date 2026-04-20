@@ -6,6 +6,7 @@ import com.ksig.tu_vcs.repos.entities.*;
 import com.ksig.tu_vcs.repos.entities.enums.Role;
 import com.ksig.tu_vcs.services.exceptions.ResourceAlreadyExistsException;
 import com.ksig.tu_vcs.services.exceptions.ResourceNotFoundException;
+import com.ksig.tu_vcs.services.views.CommitHistoryView;
 import com.ksig.tu_vcs.services.views.ItemInView;
 import com.ksig.tu_vcs.services.views.ItemOutView;
 import com.ksig.tu_vcs.services.views.RepositoryInView;
@@ -116,6 +117,22 @@ public class RepositoryService {
             return 0L;
         }
         return  revision.getRevisionNumber();
+    }
+
+    public List<CommitHistoryView> getHistory(UUID repositoryId) {
+        AppUser currentUser = userContextUtil.getCurrentUser();
+        Optional<RepositoryMember> currentMember =
+                repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
+        if (currentMember.isEmpty()) {
+            throw new AccessDeniedException("You do not have access to this repository.");
+        }
+
+        List<Revision> revisions = revisionRepository.findByRepositoryIdOrderByRevisionNumberDesc(repositoryId);
+        List<CommitHistoryView> commitHistoryViews = new ArrayList<>();
+        for (Revision revision : revisions) {
+            commitHistoryViews.add(CommitHistoryView.fromRevision(revision));
+        }
+        return commitHistoryViews;
     }
 
     @Transactional
