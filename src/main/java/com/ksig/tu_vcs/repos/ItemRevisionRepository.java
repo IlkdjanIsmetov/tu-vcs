@@ -69,8 +69,8 @@ public interface ItemRevisionRepository extends JpaRepository<ItemRevision, UUID
               AND r.revision_number <= :revisionNumber
               AND r.revision_number = (
                   SELECT MAX(r2.revision_number)
-                  FROM revision r2
-                  JOIN item_revision ir2 ON ir2.revision_id = r2.id
+                  FROM vcs.revision r2
+                  JOIN vcs.item_revision ir2 ON ir2.revision_id = r2.id
                   WHERE ir2.item_id = i.id
                     AND r2.revision_number <= :revisionNumber
               )
