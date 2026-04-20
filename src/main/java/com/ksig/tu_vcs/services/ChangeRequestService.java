@@ -10,10 +10,11 @@ import com.ksig.tu_vcs.repos.entities.enums.Action;
 import com.ksig.tu_vcs.repos.entities.enums.ChangeRequestStatus;
 import com.ksig.tu_vcs.repos.entities.enums.ItemType;
 import com.ksig.tu_vcs.repos.entities.enums.Role;
-import com.ksig.tu_vcs.services.exceptions.ResourceNotFoundException;
+import com.ksig.tu_vcs.services.views.ChangeRequestOutView;
 import com.ksig.tu_vcs.services.views.CreateCRView;
 import com.ksig.tu_vcs.services.views.ItemInView;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,6 +25,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ChangeRequestService {
     private final RepositoryRepository repositoryRepository;
@@ -153,4 +155,16 @@ public class ChangeRequestService {
 
         changeRequestRepository.save(changeRequest);
     }
+
+    public List<ChangeRequestOutView> showPendingRequests(UUID repositoryId, String logId){
+        log.info("{}:Showing pending requests from repository: {}", logId, repositoryId);
+        return changeRequestRepository.findByRepositoryIdAndStatus(repositoryId,ChangeRequestStatus.PENDING).stream()
+                .map(ChangeRequestOutView::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    public long countPendingRequests(UUID repositoryId){
+        return changeRequestRepository.countByRepositoryIdAndStatus(repositoryId,ChangeRequestStatus.PENDING);
+    }
+
 }

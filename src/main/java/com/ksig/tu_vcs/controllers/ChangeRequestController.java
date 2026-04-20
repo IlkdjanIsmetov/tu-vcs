@@ -1,10 +1,9 @@
 package com.ksig.tu_vcs.controllers;
 
-import com.ksig.tu_vcs.repos.ChangeRequestItemRepository;
 import com.ksig.tu_vcs.repos.entities.AppUser;
 import com.ksig.tu_vcs.repos.entities.ChangeRequest;
-import com.ksig.tu_vcs.repos.entities.ChangeRequestItem;
 import com.ksig.tu_vcs.services.ChangeRequestService;
+import com.ksig.tu_vcs.services.views.ChangeRequestOutView;
 import com.ksig.tu_vcs.services.views.CreateCRView;
 import com.ksig.tu_vcs.services.views.ItemInView;
 import com.ksig.tu_vcs.utils.UserContextUtil;
@@ -79,4 +78,16 @@ public class ChangeRequestController {
         return ResponseEntity.ok("Change request rejected");
     }
 
+    @GetMapping("/pending/requests")
+    public ResponseEntity<List<ChangeRequestOutView>> getPendingRequests(@PathVariable("repositoryId") UUID repositoryId,HttpServletRequest request){
+        String logId = UUID.randomUUID().toString();
+        request.setAttribute("logId", logId);
+        return ResponseEntity.ok(changeRequestService.showPendingRequests(repositoryId,logId));
+    }
+
+    @GetMapping("/pending/count")
+    public  ResponseEntity<Long> getPendingCount(@PathVariable("repositoryId") UUID repositoryId){
+        long count = changeRequestService.countPendingRequests(repositoryId);
+        return ResponseEntity.ok(count);
+    }
 }
