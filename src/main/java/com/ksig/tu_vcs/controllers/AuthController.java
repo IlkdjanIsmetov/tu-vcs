@@ -88,7 +88,43 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestParam String email) {
-        System.out.println("Password reset requested for: " + email);
-        return ResponseEntity.ok(Map.of("message", "If the email exists, reset instructions have been sent."));
+        try {
+            List<UserRepresentation> users = adminClient().realm(realm).users()
+                    .searchByEmail(email, true);
+            if (!users.isEmpty()) {
+                adminClient().realm(realm).users()
+                        .get(users.get(0).getId())
+                        .executeActionsEmail(List.of("UPDATE_PASSWORD"));
+            }
+        } catch (Exception ignored) {
+            // Always return same message to avoid user enumeration
+        }
+        return ResponseEntity.ok(Map.of("message", "If that email exists, reset instructions have been sent."));
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@AuthenticationPrincipal Jwt jwt) {
+        try {
+            String userId = jwt.getClaimAsString("sub");
+            adminClient().realm(realm).users()
+                    .get(userId)
+                    .executeActionsEmail(List.of("UPDATE_PASSWORD"));
+            return ResponseEntity.ok(Map.of("message", "Password reset email sent. Check your inbox."));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "Failed to send reset email: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/delete-account")
+    public ResponseEntity<?> deleteAccount(@AuthenticationPrincipal Jwt jwt) {
+        try {
+            String userId = jwt.getClaimAsString("sub");
+            adminClient().realm(realm).users().get(userId).remove();
+            return ResponseEntity.ok(Map.of("message", "Account deleted successfully."));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "Failed to delete account: " + e.getMessage()));
+        }
     }
 }

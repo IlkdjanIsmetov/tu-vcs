@@ -5,8 +5,8 @@ import { login, registerUser, forgotPassword } from '../components/auth'
 import { useUser } from '../context/UserContext'
 
 export default function LoginPage() {
-  const [tab, setTab]       = useState('login')
-  const [error, setError]   = useState('')
+  const [tab,     setTab]     = useState('login')
+  const [error,   setError]   = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
@@ -96,21 +96,19 @@ export default function LoginPage() {
           {message && <div className="form-success">{message}</div>}
 
           {tab === 'signup' && (
-              <>
-                <label className="field-label">
-                  <span>Full name</span>
-                  <div className="field">
-                    <span>🪪</span>
-                    <input
-                        name="fullName"
-                        required
-                        placeholder="Enter full name"
-                        value={formData.fullName}
-                        onChange={handleChange}
-                    />
-                  </div>
-                </label>
-              </>
+              <label className="field-label">
+                <span>Full name</span>
+                <div className="field">
+                  <span>🪪</span>
+                  <input
+                      name="fullName"
+                      required
+                      placeholder="Enter full name"
+                      value={formData.fullName}
+                      onChange={handleChange}
+                  />
+                </div>
+              </label>
           )}
 
           {(tab === 'signup' || tab === 'forgot') && (
@@ -177,12 +175,11 @@ export default function LoginPage() {
 
           <button className="btn primary block" type="submit" disabled={loading}>
             {loading ? 'Please wait…' : (
-                tab === 'login'  ? 'Access platform'  :
-                    tab === 'signup'  ? 'Create account'   :
+                tab === 'login'  ? 'Access platform' :
+                    tab === 'signup' ? 'Create account'  :
                         'Send reset email'
             )}
           </button>
-
 
           {tab === 'forgot' && (
               <button
@@ -193,6 +190,7 @@ export default function LoginPage() {
                 Back to sign in
               </button>
           )}
+
         </form>
       </AuthLayout>
   )
