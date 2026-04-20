@@ -6,15 +6,13 @@ import com.ksig.tu_vcs.repos.entities.*;
 import com.ksig.tu_vcs.repos.entities.enums.Role;
 import com.ksig.tu_vcs.services.exceptions.ResourceAlreadyExistsException;
 import com.ksig.tu_vcs.services.exceptions.ResourceNotFoundException;
-import com.ksig.tu_vcs.services.views.CommitHistoryView;
-import com.ksig.tu_vcs.services.views.ItemInView;
-import com.ksig.tu_vcs.services.views.ItemOutView;
-import com.ksig.tu_vcs.services.views.RepositoryInView;
-import com.ksig.tu_vcs.services.views.RepositoryOutView;
+import com.ksig.tu_vcs.services.views.*;
 import com.ksig.tu_vcs.utils.UserContextUtil;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -177,6 +175,11 @@ public class RepositoryService {
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, userToKick.getId());
         repositoryMemberRepository.delete(memberToKick.get());
         log.info("{}: User \"{}\" kicked member \"{}\" from repository {}", logId, currentUser.getUsername(), username, repositoryId);
+    }
+
+    public Page<MemberOutView> allMembers(UUID repositoryId, Pageable pageable){
+        return repositoryMemberRepository.findByRepositoryId(repositoryId,pageable)
+                .map(MemberOutView::fromEntity);
     }
 
     public Path getZippedRepo(UUID repositoryId, String logId) {

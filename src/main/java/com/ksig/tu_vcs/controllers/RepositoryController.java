@@ -6,15 +6,13 @@ import com.ksig.tu_vcs.repos.entities.Repository;
 import com.ksig.tu_vcs.repos.entities.enums.Role;
 import com.ksig.tu_vcs.services.CommitService;
 import com.ksig.tu_vcs.services.RepositoryService;
-import com.ksig.tu_vcs.services.views.CommitHistoryView;
-import com.ksig.tu_vcs.services.views.ItemInView;
-import com.ksig.tu_vcs.services.views.ItemOutView;
-import com.ksig.tu_vcs.services.views.RepositoryInView;
-import com.ksig.tu_vcs.services.views.RepositoryOutView;
+import com.ksig.tu_vcs.services.views.*;
 import com.ksig.tu_vcs.utils.UserContextUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -112,6 +110,11 @@ public class RepositoryController {
         request.setAttribute("logId", logId);
         repositoryService.kickMember(repositoryId, username, logId);
         return ResponseEntity.ok("OK");
+    }
+
+    @GetMapping("/{repositoryId}/allMembers")
+    public ResponseEntity<Page<MemberOutView>> getAllMembers(@PathVariable("repositoryId") UUID repositoryId, Pageable pageable){
+        return ResponseEntity.ok(repositoryService.allMembers(repositoryId,pageable));
     }
 
     @GetMapping("/{repositoryId}/clone")
