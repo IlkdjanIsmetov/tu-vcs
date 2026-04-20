@@ -46,16 +46,6 @@ export default function AppLayout({ subtitle, children }) {
                         </NavLink>
                     ))}
 
-
-              {/*      {user && (*/}
-              {/*          <NavLink to="/profile" className={({ isActive }) => (isActive ? 'active' : '')}>*/}
-              {/*<span className="topbar-user">*/}
-              {/*  <span className="avatar-sm">{user.initials}</span>*/}
-              {/*    {user.username}*/}
-              {/*</span>*/}
-              {/*          </NavLink>*/}
-              {/*      )}*/}
-
                     <button type="button" onClick={handleLogout}>Logout</button>
                 </nav>
             </header>

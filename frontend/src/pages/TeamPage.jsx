@@ -38,7 +38,6 @@ export default function TeamPage() {
                 <p>All registered users in the workspace with their system roles and access levels.</p>
             </section>
 
-            {/* ── Stats row ── */}
             <section className="grid-4">
                 <div className="card stat">
                     <span>Total members</span>
@@ -59,7 +58,6 @@ export default function TeamPage() {
             </section>
 
             <section className="card">
-                {/* ── Search ── */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
                     <h3 style={{ margin: 0 }}>All members</h3>
                     <div className="field" style={{ flex: 1, maxWidth: 300 }}>
