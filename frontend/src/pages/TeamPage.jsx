@@ -176,7 +176,7 @@ function RepoMembersPanel({ repo, allUsers, onChanged }) {
     const loadMembers = () => {
         setLoading(true)
         repositoryApi.getMembers(repo.id).then(data => {
-            setMembers(data?.content ?? data ?? [])
+            setMembers(data ?? [])
             setLoading(false)
         })
     }
@@ -361,7 +361,7 @@ export default function TeamPage() {
             setRepos(myRepos ?? [])
             // Load members for all repos to compute role counts
             Promise.all((myRepos ?? []).map(r => repositoryApi.getMembers(r.id))).then(results => {
-                const all = results.flatMap(r => r?.content ?? r ?? [])
+                const all = results.flatMap(r => r ?? [])
                 setRepoMembers(all)
                 setLoading(false)
             })

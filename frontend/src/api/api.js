@@ -67,7 +67,8 @@ export const repositoryApi = {
   getMembers: async (id) => {
     const res = await request(`/api/repositories/${id}/allMembers`)
     if (!res || !res.ok) return []
-    return res.json()
+    const data = await res.json()
+    return data?.content ?? data ?? []
   },
 
   update: async (id, data) => {
@@ -122,6 +123,22 @@ export const profileApi = {
     if (res.ok) return { success: true }
     const err = await res.json().catch(() => ({}))
     return { success: false, error: err.message || 'Failed to update profile.' }
+  },
+
+  changePassword: async () => {
+    const res = await request('/api/auth/change-password', { method: 'POST' })
+    if (!res) return { success: false, error: 'Not authenticated.' }
+    if (res.ok) return { success: true, data: await res.json().catch(() => ({})) }
+    const err = await res.json().catch(() => ({}))
+    return { success: false, error: err.message || 'Failed to send reset email.' }
+  },
+
+  deleteAccount: async () => {
+    const res = await request('/api/auth/delete-account', { method: 'DELETE' })
+    if (!res) return { success: false, error: 'Not authenticated.' }
+    if (res.ok) return { success: true }
+    const err = await res.json().catch(() => ({}))
+    return { success: false, error: err.message || 'Failed to delete account.' }
   },
 }
 

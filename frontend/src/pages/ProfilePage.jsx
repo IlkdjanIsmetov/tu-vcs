@@ -142,21 +142,11 @@ export default function ProfilePage() {
     setSaving(true)
     setError('')
     setSuccess('')
-    try {
-      const res = await fetch('/api/auth/change-password', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-        },
-      })
-      const data = await res.json().catch(() => ({}))
-      if (res.ok) {
-        setSuccess(data.message || 'Password reset email sent. Check your inbox.')
-      } else {
-        setError(data.message || 'Failed to send reset email.')
-      }
-    } catch {
-      setError('Could not reach the server.')
+    const res = await profileApi.changePassword()
+    if (res.success) {
+      setSuccess(res.data?.message || 'Password reset email sent. Check your inbox.')
+    } else {
+      setError(res.error)
     }
     setSaving(false)
   }
@@ -166,21 +156,11 @@ export default function ProfilePage() {
     setSaving(true)
     setError('')
     setSuccess('')
-    try {
-      const res = await fetch('/api/auth/delete-account', {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-        },
-      })
-      if (res.ok) {
-        logout()
-      } else {
-        const data = await res.json().catch(() => ({}))
-        setError(data.message || 'Failed to delete account.')
-      }
-    } catch {
-      setError('Could not reach the server.')
+    const res = await profileApi.deleteAccount()
+    if (res.success) {
+      logout()
+    } else {
+      setError(res.error)
     }
     setSaving(false)
   }

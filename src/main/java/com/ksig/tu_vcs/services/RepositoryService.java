@@ -219,6 +219,10 @@ public class RepositoryService {
     private RepositoryOutView convertToView(Repository repository) {
         RepositoryOutView view = RepositoryOutView.fromEntity(repository);
         view.setUrl(generateRepositoryUrl(repository.getId()));
+        long latestRev = revisionRepository.findLatestRevision(repository.getId())
+                .map(Revision::getRevisionNumber)
+                .orElse(0L);
+        view.setRevision(latestRev);
         return view;
     }
 

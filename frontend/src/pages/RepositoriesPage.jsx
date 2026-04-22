@@ -15,7 +15,7 @@ function MembersPanel({ repoId }) {
 
   useEffect(() => {
     repositoryApi.getMembers(repoId).then((data) => {
-      setMembers(data?.content ?? data ?? [])
+      setMembers(data)
       setLoading(false)
     })
   }, [repoId])

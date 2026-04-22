@@ -146,7 +146,7 @@ export default function ChangeRequestsPage() {
             myRepos.map(async (repo) => {
                 const crs = await changeRequestApi.getPending(repo.id)
                 const members = await repositoryApi.getMembers(repo.id)
-                const memberList = members?.content ?? members ?? []
+                const memberList = members ?? []
                 const isMaster = memberList.some(m => m.user === currentUser?.username && m.role === 'MASTER')
                 return [repo.id, { crs: crs ?? [], isMaster }]
             })
@@ -212,8 +212,10 @@ export default function ChangeRequestsPage() {
                             onChange={e => setRepoFilter(e.target.value)}
                             style={{ width: '100%', padding: '15px 0', background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', cursor: 'pointer' }}
                         >
-                            <option value="all">All repositories</option>
-                            {repos.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                            <option value="all" style={{ background: '#1a1a2e', color: '#e2e8f0' }}>All repositories</option>
+                            {repos.map(r => (
+                                <option key={r.id} value={r.id} style={{ background: '#1a1a2e', color: '#e2e8f0' }}>{r.name}</option>
+                            ))}
                         </select>
                     </div>
                 </div>
