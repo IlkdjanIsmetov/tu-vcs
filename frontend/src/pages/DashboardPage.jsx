@@ -110,7 +110,6 @@ export default function DashboardPage() {
 
             <section className="grid-2" style={{ alignItems: 'start' }}>
 
-                {/* ── Left: Pending change requests ── */}
                 <div className="card">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                         <h3 style={{ margin: 0 }}>Change requests</h3>
@@ -162,7 +161,6 @@ export default function DashboardPage() {
                     )}
                 </div>
 
-                {/* ── Right: Recent commits ── */}
                 <div className="card">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                         <h3 style={{ margin: 0 }}>Recent commits</h3>
@@ -213,7 +211,6 @@ export default function DashboardPage() {
                 </div>
             </section>
 
-            {/* ── My repositories ── */}
             <section className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                     <h3 style={{ margin: 0 }}>My repositories</h3>
@@ -278,7 +275,6 @@ export default function DashboardPage() {
                 )}
             </section>
 
-            {/* ── App preview ── */}
             <section className="card">
                 <div style={{ marginBottom: 20 }}>
                     <h3 style={{ margin: '0 0 6px' }}>What you can do</h3>
@@ -362,7 +358,7 @@ export default function DashboardPage() {
                     ))}
                 </div>
             </section>
-            {/* ── Footer ── */}
+
             <section className="card" style={{ textAlign: 'center', padding: '28px 24px' }}>
                 <div style={{ marginBottom: 16 }}>
                     <span className="badge" style={{ marginBottom: 12, display: 'inline-flex' }}>🎓 TU-VCS Project</span>
