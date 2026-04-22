@@ -58,7 +58,7 @@ export default function HistoryPage() {
                 <h2>Revision timeline.</h2>
                 <p>Browse the full commit history for each repository. See who committed what and when.</p>
             </section>
-            
+
             <section className="grid-4">
                 <div className="card stat">
                     <span>Total revisions</span>
