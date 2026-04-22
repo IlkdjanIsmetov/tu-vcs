@@ -63,6 +63,46 @@ export const repositoryApi = {
     if (!res) return { success: false }
     return { success: res.ok }
   },
+
+  getMembers: async (id) => {
+    const res = await request(`/api/repositories/${id}/allMembers`)
+    if (!res || !res.ok) return []
+    const data = await res.json()
+    return data?.content ?? data ?? []
+  },
+
+  update: async (id, data) => {
+    const res = await request(`/api/repositories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+    if (!res) return { success: false, error: 'Not authenticated.' }
+    if (res.ok) return { success: true }
+    const err = await res.json().catch(() => ({}))
+    return { success: false, error: err.message || 'Failed to update repository.' }
+  },
+
+  addMember: async (repoId, username, role) => {
+    const res = await request(
+        `/api/repositories/${repoId}/addMember?username=${encodeURIComponent(username)}&role=${role}`,
+        { method: 'POST' }
+    )
+    if (!res) return { success: false, error: 'Not authenticated.' }
+    if (res.ok) return { success: true }
+    const err = await res.json().catch(() => ({}))
+    return { success: false, error: err.message || 'Failed to add member.' }
+  },
+
+  kickMember: async (repoId, username) => {
+    const res = await request(
+        `/api/repositories/${repoId}/kickMember?username=${encodeURIComponent(username)}`,
+        { method: 'DELETE' }
+    )
+    if (!res) return { success: false, error: 'Not authenticated.' }
+    if (res.ok) return { success: true }
+    const err = await res.json().catch(() => ({}))
+    return { success: false, error: err.message || 'Failed to remove member.' }
+  },
 }
 
 export const userApi = {
@@ -83,5 +123,59 @@ export const profileApi = {
     if (res.ok) return { success: true }
     const err = await res.json().catch(() => ({}))
     return { success: false, error: err.message || 'Failed to update profile.' }
+  },
+
+  changePassword: async () => {
+    const res = await request('/api/auth/change-password', { method: 'POST' })
+    if (!res) return { success: false, error: 'Not authenticated.' }
+    if (res.ok) return { success: true, data: await res.json().catch(() => ({})) }
+    const err = await res.json().catch(() => ({}))
+    return { success: false, error: err.message || 'Failed to send reset email.' }
+  },
+
+  deleteAccount: async () => {
+    const res = await request('/api/auth/delete-account', { method: 'DELETE' })
+    if (!res) return { success: false, error: 'Not authenticated.' }
+    if (res.ok) return { success: true }
+    const err = await res.json().catch(() => ({}))
+    return { success: false, error: err.message || 'Failed to delete account.' }
+  },
+}
+
+export const changeRequestApi = {
+  getPending: async (repoId) => {
+    const res = await request(`/api/repositories/${repoId}/change-request/pending/requests`)
+    if (!res || !res.ok) return []
+    return res.json()
+  },
+
+  getPendingCount: async (repoId) => {
+    const res = await request(`/api/repositories/${repoId}/change-request/pending/count`)
+    if (!res || !res.ok) return 0
+    return res.json()
+  },
+
+  approve: async (repoId, crId) => {
+    const res = await request(`/api/repositories/${repoId}/change-request/${crId}/approve`, { method: 'POST' })
+    if (!res) return { success: false, error: 'Not authenticated.' }
+    if (res.ok) return { success: true }
+    const err = await res.json().catch(() => ({}))
+    return { success: false, error: err.message || 'Failed to approve.' }
+  },
+
+  reject: async (repoId, crId) => {
+    const res = await request(`/api/repositories/${repoId}/change-request/${crId}/reject`, { method: 'POST' })
+    if (!res) return { success: false, error: 'Not authenticated.' }
+    if (res.ok) return { success: true }
+    const err = await res.json().catch(() => ({}))
+    return { success: false, error: err.message || 'Failed to reject.' }
+  },
+}
+
+export const historyApi = {
+  getHistory: async (repoId) => {
+    const res = await request(`/api/repositories/${repoId}/history`)
+    if (!res || !res.ok) return []
+    return res.json()
   },
 }

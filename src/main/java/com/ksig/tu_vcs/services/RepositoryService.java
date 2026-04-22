@@ -90,6 +90,23 @@ public class RepositoryService {
         log.info("{}: Deleted repository with id \"{}\"", logId, repositoryId);
     }
 
+    @Transactional
+    public RepositoryOutView updateRepository(UUID repositoryId, RepositoryInView view, String logId) {
+        AppUser currentUser = userContextUtil.getCurrentUser();
+        Optional<RepositoryMember> currentMember =
+                repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
+        if (currentMember.isEmpty() || !currentMember.get().getRole().equals(Role.MASTER)) {
+            throw new AccessDeniedException("You cannot edit this repository.");
+        }
+        Repository repository = repositoryRepository.findById(repositoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Repository not found"));
+        if (view.getDescription() != null) repository.setDescription(view.getDescription());
+        repository.setRequiresApprovalByDefault(view.isRequiresApprovalByDefault());
+        repository = repositoryRepository.save(repository);
+        log.info("{}: Updated repository \"{}\"", logId, repositoryId);
+        return convertToView(repository);
+    }
+
     public List<ItemOutView> fetchRevision(UUID repositoryId, Long revisionNumber) {
         AppUser currentUser = userContextUtil.getCurrentUser();
         Optional<RepositoryMember> currentMember =
@@ -202,6 +219,10 @@ public class RepositoryService {
     private RepositoryOutView convertToView(Repository repository) {
         RepositoryOutView view = RepositoryOutView.fromEntity(repository);
         view.setUrl(generateRepositoryUrl(repository.getId()));
+        long latestRev = revisionRepository.findLatestRevision(repository.getId())
+                .map(Revision::getRevisionNumber)
+                .orElse(0L);
+        view.setRevision(latestRev);
         return view;
     }
 

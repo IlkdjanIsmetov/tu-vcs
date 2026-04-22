@@ -34,15 +34,15 @@ export const login = async (username, password) => {
 
 export const registerUser = async (userData) => {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/auth/register`, {
+    const response = await fetch(`/api/auth/register`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username:  userData.username,
         email:     userData.email,
         password:  userData.password,
-        firstName: userData.fullName.split(' ')[0],
-        lastName:  userData.fullName.split(' ').slice(1).join(' ') || '',
+        firstName: userData.firstName,
+        lastName:  userData.lastName,
       }),
     });
 
@@ -57,7 +57,7 @@ export const registerUser = async (userData) => {
 
 export const forgotPassword = async (email) => {
   try {
-    await fetch(`${BACKEND_URL}/api/auth/forgot-password?email=${encodeURIComponent(email)}`, {
+    await fetch(`/api/auth/forgot-password?email=${encodeURIComponent(email)}`, {
       method: 'POST',
     });
     return { success: true };

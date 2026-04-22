@@ -3,12 +3,19 @@ import Logo from './Logo'
 import { logout } from './auth'
 import { useUser } from '../context/UserContext'
 
-const links = [
-    { to: '/dashboard',    label: 'Dashboard',    icon: '🏠' },
-    { to: '/repositories', label: 'Repositories', icon: '📦' },
-    { to: '/activity',     label: 'Activity',     icon: '📈' },
-    { to: '/team',         label: 'Team',         icon: '👥' },
-    { to: '/profile',      label: 'Profile',      icon: '👤' },
+const workspaceLinks = [
+    { to: '/dashboard',      label: 'Dashboard',        icon: '🏠' },
+    { to: '/repositories',   label: 'Repositories',     icon: '📦' },
+    { to: '/history',        label: 'History',          icon: '📜' },
+    { to: '/profile',        label: 'Profile',          icon: '👤' },
+]
+
+const topNavLinks = [
+    { to: '/dashboard',       label: 'Dashboard' },
+    { to: '/repositories',    label: 'Repositories' },
+    { to: '/history',         label: 'History' },
+    { to: '/team',            label: 'Team' },
+    { to: '/profile',         label: 'Profile' },
 ]
 
 export default function AppLayout({ subtitle, children }) {
@@ -36,7 +43,7 @@ export default function AppLayout({ subtitle, children }) {
                 </div>
 
                 <nav className="topnav">
-                    {links.map((link) => (
+                    {topNavLinks.map((link) => (
                         <NavLink
                             key={link.to}
                             to={link.to}
@@ -45,7 +52,6 @@ export default function AppLayout({ subtitle, children }) {
                             {link.label}
                         </NavLink>
                     ))}
-
                     <button type="button" onClick={handleLogout}>Logout</button>
                 </nav>
             </header>
@@ -64,7 +70,7 @@ export default function AppLayout({ subtitle, children }) {
 
                     <div className="side-group">
                         <div className="side-label">Workspace</div>
-                        {links.map((link) => (
+                        {workspaceLinks.map((link) => (
                             <NavLink
                                 key={link.to}
                                 to={link.to}
@@ -78,11 +84,28 @@ export default function AppLayout({ subtitle, children }) {
 
                     <div className="side-group">
                         <div className="side-label">Actions</div>
-                        <NavLink to="/repositories" className="side-link">➕ New repository</NavLink>
-                        <NavLink to="/team"         className="side-link">🧩 Manage roles</NavLink>
-                        <NavLink to="/activity"     className="side-link">📝 View commits</NavLink>
+                        <NavLink
+                            to="/repositories/new"
+                            className={({ isActive }) => `side-link${isActive ? ' active' : ''}`}
+                        >
+                            <span>➕</span>
+                            <span>New repository</span>
+                        </NavLink>
+                        <NavLink
+                            to="/team"
+                            className={({ isActive }) => `side-link${isActive ? ' active' : ''}`}
+                        >
+                            <span>👥</span>
+                            <span>Manage team</span>
+                        </NavLink>
+                        <NavLink
+                            to="/change-requests"
+                            className={({ isActive }) => `side-link${isActive ? ' active' : ''}`}
+                        >
+                            <span>🔁</span>
+                            <span>Change requests</span>
+                        </NavLink>
                     </div>
-
                 </aside>
 
                 <main className="main">{children}</main>

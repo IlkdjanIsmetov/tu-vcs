@@ -142,21 +142,11 @@ export default function ProfilePage() {
     setSaving(true)
     setError('')
     setSuccess('')
-    try {
-      const res = await fetch('/api/auth/change-password', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-        },
-      })
-      const data = await res.json().catch(() => ({}))
-      if (res.ok) {
-        setSuccess(data.message || 'Password reset email sent. Check your inbox.')
-      } else {
-        setError(data.message || 'Failed to send reset email.')
-      }
-    } catch {
-      setError('Could not reach the server.')
+    const res = await profileApi.changePassword()
+    if (res.success) {
+      setSuccess(res.data?.message || 'Password reset email sent. Check your inbox.')
+    } else {
+      setError(res.error)
     }
     setSaving(false)
   }
@@ -166,21 +156,11 @@ export default function ProfilePage() {
     setSaving(true)
     setError('')
     setSuccess('')
-    try {
-      const res = await fetch('/api/auth/delete-account', {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-        },
-      })
-      if (res.ok) {
-        logout()
-      } else {
-        const data = await res.json().catch(() => ({}))
-        setError(data.message || 'Failed to delete account.')
-      }
-    } catch {
-      setError('Could not reach the server.')
+    const res = await profileApi.deleteAccount()
+    if (res.success) {
+      logout()
+    } else {
+      setError(res.error)
     }
     setSaving(false)
   }
@@ -199,7 +179,7 @@ export default function ProfilePage() {
   return (
       <AppLayout subtitle="User profile">
         <section className="hero">
-          <span className="badge">👤 Profile and preferences</span>
+          <span className="badge">👤 Profile</span>
           <h2>Profile information</h2>
           <p>View and edit your account details. Changes are saved directly to Keycloak.</p>
         </section>
@@ -217,18 +197,6 @@ export default function ProfilePage() {
                     ✏️ Edit
                   </button>
               )}
-            </div>
-
-            <div className="member" style={{ marginBottom: 16 }}>
-              <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                <div className="avatar" style={{ width: 52, height: 52, fontSize: '1.1rem' }}>
-                  {user.initials}
-                </div>
-                <div>
-                  <strong style={{ fontSize: '1rem' }}>{user.fullName}</strong>
-                  <small>{user.displayRole} · {user.email || '—'}</small>
-                </div>
-              </div>
             </div>
 
             {!editing && (
@@ -298,15 +266,10 @@ export default function ProfilePage() {
           </div>
 
           <div className="card">
-            <h3 style={{ margin: '0 0 4px' }}>Account actions</h3>
-            <p className="sub" style={{ marginTop: 0, marginBottom: 4 }}>
-              Manage security and account lifecycle. Some actions are irreversible — read the warnings carefully.
-            </p>
-
+            <h3 style={{ margin: '0 0 25px' }}>Account actions</h3>
             <ActionRow
                 icon="🔑"
                 label="Change password"
-                description="Reset your password via the Keycloak login page."
                 buttonLabel="Change"
                 buttonStyle={{ color: '#f59e0b', borderColor: 'rgba(245,158,11,0.30)' }}
                 warningType="password"
@@ -318,7 +281,6 @@ export default function ProfilePage() {
             <ActionRow
                 icon="🚪"
                 label="Log out"
-                description="End your current session on this device."
                 buttonLabel="Log out"
                 warningType="logout"
                 expanded={expanded === 'logout'}
@@ -331,10 +293,7 @@ export default function ProfilePage() {
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <span style={{ fontSize: '1.2rem' }}>🗑️</span>
                   <div>
-                    <strong style={{ display: 'block', marginBottom: 2 }}>Delete account</strong>
-                    <small style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>
-                      Permanently remove your account and all associated data.
-                    </small>
+                    <strong style={{ display: 'block'}}>Delete account</strong>
                   </div>
                 </div>
                 <button
