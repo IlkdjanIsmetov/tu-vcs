@@ -80,7 +80,7 @@ class ChangeRequestServiceTest {
         when(changeRequestRepository.save(any())).thenReturn(saved);
 
         ChangeRequest result =
-                changeRequestService.createChangeRequest(repoId, user, view);
+                changeRequestService.createChangeRequest(repoId, user, view,"test-log-id");
 
         assertEquals("title", result.getTitle());
     }
@@ -262,7 +262,7 @@ class ChangeRequestServiceTest {
         when(commitService.createRevision(repoId, "title", user)).thenReturn(newRevision);
         when(changeRequestItemRepository.findByChangeRequestId(crId)).thenReturn(List.of(new ChangeRequestItem()));
 
-        changeRequestService.approveChangeRequest(repoId, crId, user);
+        changeRequestService.approveChangeRequest(repoId, crId, user,"test-log-id");
 
         verify(changeRequestRepository).save(cr);
     }
@@ -286,7 +286,7 @@ class ChangeRequestServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class,
-                () -> changeRequestService.approveChangeRequest(repoId, crId, user));
+                () -> changeRequestService.approveChangeRequest(repoId, crId, user,"test-log-id"));
     }
 
     @Test
@@ -317,7 +317,7 @@ class ChangeRequestServiceTest {
                 .thenReturn(Optional.of(latest));
 
         assertThrows(RuntimeException.class,
-                () -> changeRequestService.approveChangeRequest(repoId, crId, user));
+                () -> changeRequestService.approveChangeRequest(repoId, crId, user,"test-log-id"));
 
         assertEquals(ChangeRequestStatus.CONFLICTED, cr.getStatus());
         verify(commitService, never()).createRevision(any(), any(), any());
@@ -343,7 +343,7 @@ class ChangeRequestServiceTest {
         when(changeRequestRepository.findById(crId))
                 .thenReturn(Optional.of(cr));
 
-        changeRequestService.rejectChangeRequest(repoId, user, crId);
+        changeRequestService.rejectChangeRequest(repoId, user, crId,"test-log-id");
 
         assertEquals(ChangeRequestStatus.REJECTED, cr.getStatus());
     }
@@ -367,7 +367,7 @@ class ChangeRequestServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class,
-                () -> changeRequestService.rejectChangeRequest(repoId, user, crId));
+                () -> changeRequestService.rejectChangeRequest(repoId, user, crId,"test-log-id"));
     }
 
 }

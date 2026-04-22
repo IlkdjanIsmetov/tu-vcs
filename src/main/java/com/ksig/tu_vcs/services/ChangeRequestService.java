@@ -49,10 +49,11 @@ public class ChangeRequestService {
         this.repositoryMemberRepository = repositoryMemberRepository;
     }
 
-    public ChangeRequest createChangeRequest(UUID repositoryId, AppUser currentUser, CreateCRView view) {
+    public ChangeRequest createChangeRequest(UUID repositoryId, AppUser currentUser, CreateCRView view, String logId) {
         Optional<RepositoryMember> currentMember =
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
         if (currentMember.isEmpty() || !currentMember.get().canCommit()) {
+            log.warn("{}: You cannot make change to this repository: {}!", logId, repositoryId);
             throw new AccessDeniedException("You cannot make change to this repository.");
         }
 
@@ -63,7 +64,7 @@ public class ChangeRequestService {
         changeRequest.setStatus(ChangeRequestStatus.PENDING);
         changeRequest.setTitle(view.getTittle());
         changeRequest.setDescription(view.getDescription());
-
+        log.info("{}: Created change request '{}'",logId,changeRequest.getTitle());
         return changeRequestRepository.save(changeRequest);
     }
 
@@ -72,6 +73,7 @@ public class ChangeRequestService {
         Optional<RepositoryMember> currentMember =
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
         if (currentMember.isEmpty() || !currentMember.get().canCommit()) {
+            log.warn("{}: You cannot make change to this repository: {}",logId,repositoryId);
             throw new AccessDeniedException("You cannot make change to this repository.");
         }
 
@@ -79,6 +81,7 @@ public class ChangeRequestService {
                 .orElseThrow(() -> new RuntimeException("Change request not found"));
 
         if (changeRequest.getStatus() != ChangeRequestStatus.PENDING) {
+            log.warn("{}: Cannot add item to a non-pending change request",logId);
             throw new RuntimeException("Cannot add item to a non-pending change request");
         }
         //правя листа към мап с ключ името на файла, като разчитам че клиента ще опише връзките в ItemView
@@ -95,6 +98,7 @@ public class ChangeRequestService {
                 MultipartFile file = fileMap.get(view.getFileRef());
 
                 if (file == null) {
+                    log.warn("{}: Missing multipart file payload for reference: '{}'", logId,view.getFileRef());
                     throw new RuntimeException("Missing multipart file payload for reference: " + view.getFileRef());
                 }
 
@@ -108,17 +112,20 @@ public class ChangeRequestService {
                 changeRequestItem.setStorageKey(null);
                 changeRequestItem.setFileSize(0L);
                 changeRequestItem.setChecksum(null);
+                log.info("{}: Deleted item '{}'", logId,changeRequestItem.getPath());
             }
 
             changeRequestItemRepository.save(changeRequestItem);
+            log.info("{}: Successfully added item to change request",logId);
         }
     }
 
     @Transactional
-    public void approveChangeRequest(UUID repositoryId, UUID changeRequestId, AppUser currentUser) {
+    public void approveChangeRequest(UUID repositoryId, UUID changeRequestId, AppUser currentUser, String logId) {
         Optional<RepositoryMember> currentMember =
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
         if (currentMember.isEmpty() || !currentMember.get().getRole().equals(Role.MASTER)) {
+            log.warn("{}:Only MASTER members can approve this change!",logId);
             throw new AccessDeniedException("Only MASTER members can approve this change.");
         }
 
@@ -128,6 +135,7 @@ public class ChangeRequestService {
                 .orElseThrow();
         if (!latestRevision.getRevisionNumber().equals(changeRequest.getBaseRevisionNumber())) {
             changeRequest.setStatus(ChangeRequestStatus.CONFLICTED);
+
             throw new RuntimeException("Conflicted");
         }
         Revision newRevision = commitService.createRevision(repositoryId, changeRequest.getTitle(), currentUser);
@@ -138,13 +146,14 @@ public class ChangeRequestService {
         }
         changeRequest.setStatus(ChangeRequestStatus.APPROVED);
         changeRequestRepository.save(changeRequest);
-
+        log.info("{}:Approved change request '{}'",logId,changeRequest.getTitle());
     }
 
-    public void rejectChangeRequest(UUID repositoryId, AppUser currentUser ,UUID changeRequestId) {
+    public void rejectChangeRequest(UUID repositoryId, AppUser currentUser ,UUID changeRequestId, String logId) {
         Optional<RepositoryMember> currentMember =
                 repositoryMemberRepository.findByRepositoryIdAndUserId(repositoryId, currentUser.getId());
         if (currentMember.isEmpty() || !currentMember.get().getRole().equals(Role.MASTER)) {
+            log.warn("{}:Only MASTER members can reject this change!",logId);
             throw new AccessDeniedException("Only MASTER members can reject this change.");
         }
 
@@ -153,6 +162,7 @@ public class ChangeRequestService {
 
         changeRequest.setStatus(ChangeRequestStatus.REJECTED);
 
+        log.info("{}:Rejected change request '{}'",logId,changeRequest.getTitle());
         changeRequestRepository.save(changeRequest);
     }
 

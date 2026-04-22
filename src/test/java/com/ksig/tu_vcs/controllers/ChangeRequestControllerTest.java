@@ -54,7 +54,7 @@ class ChangeRequestControllerTest {
         cr.setId(crId);
 
         when(userContextUtil.getCurrentUser()).thenReturn(user);
-        when(changeRequestService.createChangeRequest(repoId, user, view))
+        when(changeRequestService.createChangeRequest(repoId, user, view,"test-log-id"))
                 .thenReturn(cr);
 
         ResponseEntity<UUID> response =
@@ -63,7 +63,7 @@ class ChangeRequestControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(crId, response.getBody());
 
-        verify(changeRequestService).createChangeRequest(repoId, user, view);
+        verify(changeRequestService).createChangeRequest(repoId, user, view,"test-log-id");
     }
 
     @Test
@@ -133,7 +133,7 @@ class ChangeRequestControllerTest {
 
         verify(userContextUtil).getCurrentUser();
         verify(changeRequestService)
-                .approveChangeRequest(repoId, crId, user);
+                .approveChangeRequest(repoId, crId, user,"test-log-id");
         verify(request).setAttribute(eq("logId"), any());
     }
 
@@ -156,6 +156,6 @@ class ChangeRequestControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("Change request rejected", response.getBody());
 
-        verify(changeRequestService).rejectChangeRequest(repoId, user, crId);
+        verify(changeRequestService).rejectChangeRequest(repoId, user, crId,"test-log-id");
     }
 }

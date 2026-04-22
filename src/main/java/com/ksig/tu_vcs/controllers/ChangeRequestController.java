@@ -37,7 +37,7 @@ public class ChangeRequestController {
         String logId = UUID.randomUUID().toString();
         request.setAttribute("logId", logId);
         AppUser currentUser = userContextUtil.getCurrentUser();
-        ChangeRequest changeRequest = changeRequestService.createChangeRequest(repositoryId, currentUser, view);
+        ChangeRequest changeRequest = changeRequestService.createChangeRequest(repositoryId, currentUser, view,logId);
         return ResponseEntity.ok(changeRequest.getId());
     }
 
@@ -63,7 +63,7 @@ public class ChangeRequestController {
 
         String logId = UUID.randomUUID().toString();
         request.setAttribute("logId", logId);
-        changeRequestService.approveChangeRequest(repositoryId, changeRequestId, currentUser);
+        changeRequestService.approveChangeRequest(repositoryId, changeRequestId, currentUser,logId);
         return ResponseEntity.ok("Change request approved");
     }
 
@@ -74,7 +74,7 @@ public class ChangeRequestController {
         AppUser currentUser = userContextUtil.getCurrentUser();
         String logId = UUID.randomUUID().toString();
         request.setAttribute("logId", logId);
-        changeRequestService.rejectChangeRequest(repositoryId, currentUser, changeRequestId);
+        changeRequestService.rejectChangeRequest(repositoryId, currentUser, changeRequestId,logId);
         return ResponseEntity.ok("Change request rejected");
     }
 
