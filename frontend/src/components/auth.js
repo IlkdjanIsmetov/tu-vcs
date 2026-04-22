@@ -41,8 +41,8 @@ export const registerUser = async (userData) => {
         username:  userData.username,
         email:     userData.email,
         password:  userData.password,
-        firstName: userData.fullName.split(' ')[0],
-        lastName:  userData.fullName.split(' ').slice(1).join(' ') || '',
+        firstName: userData.firstName,
+        lastName:  userData.lastName,
       }),
     });
 

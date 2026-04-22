@@ -61,6 +61,16 @@ public class RepositoryController {
         return ResponseEntity.ok("OK");
     }
 
+    @PutMapping("/{repositoryId}")
+    public ResponseEntity<RepositoryOutView> updateRepository(
+            @PathVariable("repositoryId") UUID repositoryId,
+            @RequestBody RepositoryInView view,
+            HttpServletRequest request) {
+        String logId = UUID.randomUUID().toString();
+        request.setAttribute("logId", logId);
+        return ResponseEntity.ok(repositoryService.updateRepository(repositoryId, view, logId));
+    }
+
 
     @PostMapping(path = "/{repositoryId}/commit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> commit(@PathVariable("repositoryId") UUID repositoryId, @RequestPart("paths") List<ItemInView> items,
@@ -96,8 +106,8 @@ public class RepositoryController {
 
     @PostMapping("/{repositoryId}/addMember")
     public ResponseEntity<String> addMember(@PathVariable("repositoryId") UUID repositoryId, @RequestParam("username") String username,
-                                       @RequestParam("role")
-                                       Role role, HttpServletRequest request) {
+                                            @RequestParam("role")
+                                            Role role, HttpServletRequest request) {
         String logId = UUID.randomUUID().toString();
         request.setAttribute("logId", logId);
         repositoryService.addMember(repositoryId, username, role, logId);

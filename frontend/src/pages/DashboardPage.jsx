@@ -20,8 +20,8 @@ export default function DashboardPage() {
 
     const stats = [
         { label: 'Repositories',    value: loading ? '…' : repos.length },
-        { label: 'Total revisions', value: loading ? '…' : totalRev },
-        { label: 'Approval repos',  value: loading ? '…' : repos.filter((r) => r.requireApproval).length },
+        { label: 'Total commits', value: loading ? '…' : totalRev },
+        { label: 'Change requests',  value: loading ? '…' : repos.filter((r) => r.requireApproval).length },
         { label: 'Logged in as',    value: user?.username || '…' },
     ]
 
@@ -29,7 +29,7 @@ export default function DashboardPage() {
         <AppLayout subtitle="Build together. Ship faster.">
             <section className="hero">
                 <span className="badge">TU-VCS</span>
-                <h2>Welcome back{user ? `, ${user.firstName || user.username}` : ''}.</h2>
+                <h2>Welcome back{user ? `, ${user.firstName || user.username}` : ''}!</h2>
                 <p>
                     Your web workspace for repository management, authentication,
                     team collaboration, activity tracking and profile visualization is ready.
@@ -78,7 +78,6 @@ export default function DashboardPage() {
                     {[
                         { label: 'Username',    value: user?.username    || '—' },
                         { label: 'Email',       value: user?.email       || '—' },
-                        { label: 'Role',        value: user?.displayRole || '—' },
                         { label: 'Full name',   value: user?.fullName    || '—' },
                     ].map(({ label, value }) => (
                         <div className="repo" style={{ marginTop: '12px' }} key={label}>

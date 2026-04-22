@@ -1,11 +1,12 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
-import LoginPage       from './pages/LoginPage'
-import DashboardPage   from './pages/DashboardPage'
-import ActivityPage    from './pages/ActivityPage'
-import ProfilePage     from './pages/ProfilePage'
-import RepositoriesPage from './pages/RepositoriesPage'
-import TeamPage        from './pages/TeamPage'
+import LoginPage          from './pages/LoginPage'
+import DashboardPage      from './pages/DashboardPage'
+import ActivityPage       from './pages/ActivityPage'
+import ProfilePage        from './pages/ProfilePage'
+import RepositoriesPage   from './pages/RepositoriesPage'
+import NewRepositoryPage  from './pages/NewRepositoryPage'
+import TeamPage           from './pages/TeamPage'
 
 export default function App() {
     return (
@@ -17,6 +18,9 @@ export default function App() {
             } />
             <Route path="/repositories" element={
                 <ProtectedRoute><RepositoriesPage /></ProtectedRoute>
+            } />
+            <Route path="/repositories/new" element={
+                <ProtectedRoute><NewRepositoryPage /></ProtectedRoute>
             } />
             <Route path="/activity" element={
                 <ProtectedRoute><ActivityPage /></ProtectedRoute>

@@ -6,6 +6,7 @@ import { useUser } from '../context/UserContext'
 
 export default function LoginPage() {
   const [tab,     setTab]     = useState('login')
+  const [showForm, setShowForm] = useState(false)
   const [error,   setError]   = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
@@ -13,7 +14,7 @@ export default function LoginPage() {
   const { refreshUser } = useUser()
 
   const [formData, setFormData] = useState({
-    username: '', password: '', email: '', fullName: '',
+    username: '', password: '', email: '', firstName: '', lastName: '',
   })
 
   const handleChange = (e) => {
@@ -24,6 +25,7 @@ export default function LoginPage() {
 
   const handleTabChange = (newTab) => {
     setTab(newTab)
+    setShowForm(true)
     setError('')
     setMessage('')
   }
@@ -44,14 +46,14 @@ export default function LoginPage() {
       }
 
     } else if (tab === 'signup') {
-      if (!formData.fullName.trim()) {
-        setError('Full name is required.')
+      if (!formData.firstName.trim()) {
+        setError('First name is required.')
         setLoading(false)
         return
       }
       const res = await registerUser(formData)
       if (res.success) {
-        setMessage('Account created! You can now sign in.')
+        setMessage('Account created! You can now log in.')
         handleTabChange('login')
       } else {
         setError(res.error)
@@ -71,7 +73,7 @@ export default function LoginPage() {
   }
 
   return (
-      <AuthLayout showForm selectedTab={tab} onSelectTab={handleTabChange}>
+      <AuthLayout showForm={showForm} selectedTab={tab} onSelectTab={handleTabChange}>
 
         <div className="tabs">
           <button
@@ -79,7 +81,7 @@ export default function LoginPage() {
               className={tab === 'login' ? 'tab active' : 'tab'}
               onClick={() => handleTabChange('login')}
           >
-            Sign in
+            Log in
           </button>
           <button
               type="button"
@@ -96,19 +98,34 @@ export default function LoginPage() {
           {message && <div className="form-success">{message}</div>}
 
           {tab === 'signup' && (
-              <label className="field-label">
-                <span>Full name</span>
-                <div className="field">
-                  <span>🪪</span>
-                  <input
-                      name="fullName"
-                      required
-                      placeholder="Enter full name"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                  />
-                </div>
-              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <label className="field-label">
+                  <span>First name</span>
+                  <div className="field">
+                    <span>🪪</span>
+                    <input
+                        name="firstName"
+                        required
+                        placeholder="First name"
+                        value={formData.firstName}
+                        onChange={handleChange}
+                    />
+                  </div>
+                </label>
+                <label className="field-label">
+                  <span>Last name</span>
+                  <div className="field">
+                    <span>🪪</span>
+                    <input
+                        name="lastName"
+                        required
+                        placeholder="Last name"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                    />
+                  </div>
+                </label>
+              </div>
           )}
 
           {(tab === 'signup' || tab === 'forgot') && (
@@ -187,7 +204,7 @@ export default function LoginPage() {
                   className="btn secondary block"
                   onClick={() => handleTabChange('login')}
               >
-                Back to sign in
+                Back to log in
               </button>
           )}
 
