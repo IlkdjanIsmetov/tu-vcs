@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Controller
+@RestController
 @RequestMapping("/api/repositories/{repositoryId}/change-request")
 public class ChangeRequestController {
     private final ChangeRequestService changeRequestService;

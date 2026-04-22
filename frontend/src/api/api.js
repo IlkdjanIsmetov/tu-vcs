@@ -124,3 +124,41 @@ export const profileApi = {
     return { success: false, error: err.message || 'Failed to update profile.' }
   },
 }
+
+export const changeRequestApi = {
+  getPending: async (repoId) => {
+    const res = await request(`/api/repositories/${repoId}/change-request/pending/requests`)
+    if (!res || !res.ok) return []
+    return res.json()
+  },
+
+  getPendingCount: async (repoId) => {
+    const res = await request(`/api/repositories/${repoId}/change-request/pending/count`)
+    if (!res || !res.ok) return 0
+    return res.json()
+  },
+
+  approve: async (repoId, crId) => {
+    const res = await request(`/api/repositories/${repoId}/change-request/${crId}/approve`, { method: 'POST' })
+    if (!res) return { success: false, error: 'Not authenticated.' }
+    if (res.ok) return { success: true }
+    const err = await res.json().catch(() => ({}))
+    return { success: false, error: err.message || 'Failed to approve.' }
+  },
+
+  reject: async (repoId, crId) => {
+    const res = await request(`/api/repositories/${repoId}/change-request/${crId}/reject`, { method: 'POST' })
+    if (!res) return { success: false, error: 'Not authenticated.' }
+    if (res.ok) return { success: true }
+    const err = await res.json().catch(() => ({}))
+    return { success: false, error: err.message || 'Failed to reject.' }
+  },
+}
+
+export const historyApi = {
+  getHistory: async (repoId) => {
+    const res = await request(`/api/repositories/${repoId}/history`)
+    if (!res || !res.ok) return []
+    return res.json()
+  },
+}

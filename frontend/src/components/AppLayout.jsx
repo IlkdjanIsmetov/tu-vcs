@@ -4,24 +4,23 @@ import { logout } from './auth'
 import { useUser } from '../context/UserContext'
 
 const workspaceLinks = [
-    { to: '/dashboard',    label: 'Dashboard',    icon: '🏠' },
-    { to: '/repositories', label: 'Repositories', icon: '📦' },
-    { to: '/activity',     label: 'Activity',     icon: '📈' },
-    { to: '/profile',      label: 'Profile',      icon: '👤' },
+    { to: '/dashboard',      label: 'Dashboard',        icon: '🏠' },
+    { to: '/repositories',   label: 'Repositories',     icon: '📦' },
+    { to: '/history',        label: 'History',          icon: '📜' },
+    { to: '/profile',        label: 'Profile',          icon: '👤' },
 ]
 
 const topNavLinks = [
-    { to: '/dashboard',    label: 'Dashboard' },
-    { to: '/repositories', label: 'Repositories' },
-    { to: '/activity',     label: 'Activity' },
-    { to: '/team',         label: 'Team' },
-    { to: '/profile',      label: 'Profile' },
+    { to: '/dashboard',       label: 'Dashboard' },
+    { to: '/repositories',    label: 'Repositories' },
+    { to: '/history',         label: 'History' },
+    { to: '/team',            label: 'Team' },
+    { to: '/profile',         label: 'Profile' },
 ]
 
 export default function AppLayout({ subtitle, children }) {
     const navigate = useNavigate()
     const { user } = useUser()
-
 
     const handleLogout = () => {
         logout()
@@ -100,11 +99,11 @@ export default function AppLayout({ subtitle, children }) {
                             <span>Manage team</span>
                         </NavLink>
                         <NavLink
-                            to="/activity"
+                            to="/change-requests"
                             className={({ isActive }) => `side-link${isActive ? ' active' : ''}`}
                         >
-                            <span>📝</span>
-                            <span>View commits</span>
+                            <span>🔁</span>
+                            <span>Change requests</span>
                         </NavLink>
                     </div>
                 </aside>
