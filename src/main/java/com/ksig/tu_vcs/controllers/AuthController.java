@@ -5,6 +5,7 @@ import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -18,18 +19,12 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "*")
 public class AuthController {
+    private final Keycloak keycloak;
+    @Value("${keycloak.target-realm}")
+    private String realm;
 
-    private final String serverUrl = "http://localhost:8081";
-    private final String realm     = "vcs-realm";
-
-    private Keycloak adminClient() {
-        return KeycloakBuilder.builder()
-                .serverUrl(serverUrl)
-                .realm("master")
-                .username("admin")
-                .password("admin")
-                .clientId("admin-cli")
-                .build();
+    public AuthController(Keycloak keycloak) {
+        this.keycloak = keycloak;
     }
 
     @PostMapping("/register")
@@ -50,7 +45,7 @@ public class AuthController {
             password.setValue(body.get("password"));
             user.setCredentials(List.of(password));
 
-            Response response = adminClient().realm(realm).users().create(user);
+            Response response = keycloak.realm(realm).users().create(user);
 
             if (response.getStatus() == 201) {
                 return ResponseEntity.ok(Map.of("message", "Registration successful."));
@@ -71,7 +66,7 @@ public class AuthController {
         try {
             String userId = jwt.getClaimAsString("sub");
 
-            UserRepresentation user = adminClient().realm(realm).users().get(userId).toRepresentation();
+            UserRepresentation user = keycloak.realm(realm).users().get(userId).toRepresentation();
             if (body.containsKey("firstName")) user.setFirstName(body.get("firstName"));
             if (body.containsKey("lastName"))  user.setLastName(body.get("lastName"));
             if (body.containsKey("email")) {
@@ -79,7 +74,7 @@ public class AuthController {
                 user.setEmailVerified(true);
             }
 
-            adminClient().realm(realm).users().get(userId).update(user);
+            keycloak.realm(realm).users().get(userId).update(user);
             return ResponseEntity.ok(Map.of("message", "Profile updated successfully."));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("message", "Error: " + e.getMessage()));
@@ -89,10 +84,10 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestParam String email) {
         try {
-            List<UserRepresentation> users = adminClient().realm(realm).users()
+            List<UserRepresentation> users = keycloak.realm(realm).users()
                     .searchByEmail(email, true);
             if (!users.isEmpty()) {
-                adminClient().realm(realm).users()
+                keycloak.realm(realm).users()
                         .get(users.get(0).getId())
                         .executeActionsEmail(List.of("UPDATE_PASSWORD"));
             }
@@ -106,7 +101,7 @@ public class AuthController {
     public ResponseEntity<?> changePassword(@AuthenticationPrincipal Jwt jwt) {
         try {
             String userId = jwt.getClaimAsString("sub");
-            adminClient().realm(realm).users()
+            keycloak.realm(realm).users()
                     .get(userId)
                     .executeActionsEmail(List.of("UPDATE_PASSWORD"));
             return ResponseEntity.ok(Map.of("message", "Password reset email sent. Check your inbox."));
@@ -120,7 +115,7 @@ public class AuthController {
     public ResponseEntity<?> deleteAccount(@AuthenticationPrincipal Jwt jwt) {
         try {
             String userId = jwt.getClaimAsString("sub");
-            adminClient().realm(realm).users().get(userId).remove();
+            keycloak.realm(realm).users().get(userId).remove();
             return ResponseEntity.ok(Map.of("message", "Account deleted successfully."));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
