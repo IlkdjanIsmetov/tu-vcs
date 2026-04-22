@@ -63,6 +63,45 @@ export const repositoryApi = {
     if (!res) return { success: false }
     return { success: res.ok }
   },
+
+  getMembers: async (id) => {
+    const res = await request(`/api/repositories/${id}/allMembers`)
+    if (!res || !res.ok) return []
+    return res.json()
+  },
+
+  update: async (id, data) => {
+    const res = await request(`/api/repositories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+    if (!res) return { success: false, error: 'Not authenticated.' }
+    if (res.ok) return { success: true }
+    const err = await res.json().catch(() => ({}))
+    return { success: false, error: err.message || 'Failed to update repository.' }
+  },
+
+  addMember: async (repoId, username, role) => {
+    const res = await request(
+        `/api/repositories/${repoId}/addMember?username=${encodeURIComponent(username)}&role=${role}`,
+        { method: 'POST' }
+    )
+    if (!res) return { success: false, error: 'Not authenticated.' }
+    if (res.ok) return { success: true }
+    const err = await res.json().catch(() => ({}))
+    return { success: false, error: err.message || 'Failed to add member.' }
+  },
+
+  kickMember: async (repoId, username) => {
+    const res = await request(
+        `/api/repositories/${repoId}/kickMember?username=${encodeURIComponent(username)}`,
+        { method: 'DELETE' }
+    )
+    if (!res) return { success: false, error: 'Not authenticated.' }
+    if (res.ok) return { success: true }
+    const err = await res.json().catch(() => ({}))
+    return { success: false, error: err.message || 'Failed to remove member.' }
+  },
 }
 
 export const userApi = {
