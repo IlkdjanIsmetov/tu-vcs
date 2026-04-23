@@ -24,6 +24,7 @@ public class RepositoryOutView {
         view.setName(entity.getName());
         view.setDescription(entity.getDescription());
         view.setRequireApproval(entity.getRequiresApprovalByDefault());
+        view.setRevision(0L);
         return view;
     }
 }

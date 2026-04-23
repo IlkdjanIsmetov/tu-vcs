@@ -179,7 +179,7 @@ export default function RepositoriesPage() {
         <section className="hero">
           <span className="badge">📦 Repository management</span>
           <h2>Repositories</h2>
-          <p>All repositories you own or collaborate on. Create new repository or edit exciting one.</p>
+          <p>All repositories you own. Create a new repository or edit an existing one.</p>
         </section>
 
         {error && <div className="form-error" style={{ marginBottom: 16 }}>{error}</div>}

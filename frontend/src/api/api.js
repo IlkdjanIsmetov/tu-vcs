@@ -30,8 +30,7 @@ async function request(path, options = {}) {
 export const repositoryApi = {
   getAll: async () => {
     const res = await request('/api/repositories/all')
-    if (!res) return null
-    if (!res.ok) return []
+    if (!res || !res.ok) return []
     return res.json()
   },
 
@@ -143,6 +142,12 @@ export const profileApi = {
 }
 
 export const changeRequestApi = {
+  getAll: async (repoId) => {
+    const res = await request(`/api/repositories/${repoId}/change-request/all`)
+    if (!res || !res.ok) return []
+    return res.json()
+  },
+
   getPending: async (repoId) => {
     const res = await request(`/api/repositories/${repoId}/change-request/pending/requests`)
     if (!res || !res.ok) return []

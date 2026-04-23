@@ -177,4 +177,11 @@ public class ChangeRequestService {
         return changeRequestRepository.countByRepositoryIdAndStatus(repositoryId,ChangeRequestStatus.PENDING);
     }
 
+    public List<ChangeRequestOutView> showAllRequests(UUID repositoryId, String logId){
+        log.info("{}:Showing all requests from repository: {}", logId, repositoryId);
+        return changeRequestRepository.findByRepositoryId(repositoryId).stream()
+                .map(ChangeRequestOutView::fromEntity)
+                .collect(Collectors.toList());
+    }
+
 }

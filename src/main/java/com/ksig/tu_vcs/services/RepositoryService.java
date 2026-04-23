@@ -86,7 +86,7 @@ public class RepositoryService {
         if (currentMember.isEmpty() || !currentMember.get().getRole().equals(Role.MASTER)) {
             throw new AccessDeniedException("You cannot delete this repository.");
         }
-        repositoryMemberRepository.delete(currentMember.get());
+        repositoryRepository.deleteById(repositoryId);
         log.info("{}: Deleted repository with id \"{}\"", logId, repositoryId);
     }
 

@@ -93,7 +93,6 @@ function CRCard({ cr, repoId, repoName, isMaster, onAction }) {
                 )}
             </div>
 
-
             {confirm && (
                 <div style={{
                     marginTop: 12, padding: '12px 14px', borderRadius: 14,
@@ -131,10 +130,10 @@ function CRCard({ cr, repoId, repoName, isMaster, onAction }) {
 
 export default function ChangeRequestsPage() {
     const { user: currentUser } = useUser()
-    const [repos,     setRepos]     = useState([])
-    const [crData,    setCrData]    = useState({})   // repoId -> { crs, isMaster }
-    const [loading,   setLoading]   = useState(true)
-    const [filter,    setFilter]    = useState('PENDING')  // PENDING | ALL
+    const [repos,      setRepos]      = useState([])
+    const [crData,     setCrData]     = useState({})
+    const [loading,    setLoading]    = useState(true)
+    const [statusFilter, setStatusFilter] = useState('ALL')
     const [repoFilter, setRepoFilter] = useState('all')
 
     const load = async () => {
@@ -144,11 +143,12 @@ export default function ChangeRequestsPage() {
 
         const entries = await Promise.all(
             myRepos.map(async (repo) => {
-                const crs = await changeRequestApi.getPending(repo.id)
+                const allCrs  = await changeRequestApi.getAll(repo.id)
+                const pendingCrs = (allCrs ?? []).filter(cr => cr.status === 'PENDING')
                 const members = await repositoryApi.getMembers(repo.id)
                 const memberList = members ?? []
                 const isMaster = memberList.some(m => m.user === currentUser?.username && m.role === 'MASTER')
-                return [repo.id, { crs: crs ?? [], isMaster }]
+                return [repo.id, { allCrs: allCrs ?? [], pendingCrs, isMaster }]
             })
         )
         setCrData(Object.fromEntries(entries))
@@ -157,46 +157,50 @@ export default function ChangeRequestsPage() {
 
     useEffect(() => { load() }, [])
 
-    const allCrs = Object.values(crData).flatMap(d => d.crs)
-    const totalPending = allCrs.filter(c => c.status === 'PENDING').length
+    const allCrs = Object.values(crData).flatMap(d => d.allCrs)
+    const totalPending    = allCrs.filter(c => c.status === 'PENDING').length
+    const totalApproved   = allCrs.filter(c => c.status === 'APPROVED').length
+    const totalRejected   = allCrs.filter(c => c.status === 'REJECTED').length
+    const totalConflicted = allCrs.filter(c => c.status === 'CONFLICTED').length
 
     const displayRepos = repoFilter === 'all' ? repos : repos.filter(r => r.id === repoFilter)
+
     const displayCrs = displayRepos.flatMap(repo => {
-        const data = crData[repo.id] || { crs: [], isMaster: false }
-        return data.crs.map(cr => ({ cr, repo, isMaster: data.isMaster }))
-    })
+        const data = crData[repo.id] || { allCrs: [], isMaster: false }
+        return data.allCrs.map(cr => ({ cr, repo, isMaster: data.isMaster }))
+    }).filter(({ cr }) => statusFilter === 'ALL' || cr.status === statusFilter)
 
     return (
         <AppLayout subtitle="Change requests">
             <section className="hero">
                 <span className="badge">🔁 Change requests</span>
                 <h2>Review &amp; approve changes.</h2>
-                <p>Manage pending change requests across your repositories. Approve or reject submissions from your team.</p>
+                <p>Manage change requests across your repositories. Approve or reject pending submissions from your team.</p>
             </section>
 
             <section className="grid-4">
-                <div className="card stat">
+                <div className="card stat" style={{ cursor: 'pointer' }} onClick={() => setStatusFilter('PENDING')}>
                     <span>Pending</span>
                     <strong style={{ color: totalPending > 0 ? '#fbbf24' : undefined }}>
                         {loading ? '…' : totalPending}
                     </strong>
                 </div>
-                <div className="card stat">
+                <div className="card stat" style={{ cursor: 'pointer' }} onClick={() => setStatusFilter('APPROVED')}>
                     <span>Approved</span>
                     <strong style={{ color: '#22c55e' }}>
-                        {loading ? '…' : allCrs.filter(c => c.status === 'APPROVED').length}
+                        {loading ? '…' : totalApproved}
                     </strong>
                 </div>
-                <div className="card stat">
+                <div className="card stat" style={{ cursor: 'pointer' }} onClick={() => setStatusFilter('REJECTED')}>
                     <span>Rejected</span>
                     <strong style={{ color: '#ef4444' }}>
-                        {loading ? '…' : allCrs.filter(c => c.status === 'REJECTED').length}
+                        {loading ? '…' : totalRejected}
                     </strong>
                 </div>
-                <div className="card stat">
+                <div className="card stat" style={{ cursor: 'pointer' }} onClick={() => setStatusFilter('CONFLICTED')}>
                     <span>Conflicted</span>
                     <strong style={{ color: '#f97316' }}>
-                        {loading ? '…' : allCrs.filter(c => c.status === 'CONFLICTED').length}
+                        {loading ? '…' : totalConflicted}
                     </strong>
                 </div>
             </section>
@@ -204,6 +208,21 @@ export default function ChangeRequestsPage() {
             <section className="card">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
                     <h3 style={{ margin: 0 }}>Change requests</h3>
+
+                    <div className="field" style={{ minWidth: 160 }}>
+                        <span>🔍</span>
+                        <select
+                            value={statusFilter}
+                            onChange={e => setStatusFilter(e.target.value)}
+                            style={{ width: '100%', padding: '15px 0', background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', cursor: 'pointer' }}
+                        >
+                            <option value="ALL"        style={{ background: '#1a1a2e', color: '#e2e8f0' }}>All statuses</option>
+                            <option value="PENDING"    style={{ background: '#1a1a2e', color: '#e2e8f0' }}>Pending</option>
+                            <option value="APPROVED"   style={{ background: '#1a1a2e', color: '#e2e8f0' }}>Approved</option>
+                            <option value="REJECTED"   style={{ background: '#1a1a2e', color: '#e2e8f0' }}>Rejected</option>
+                            <option value="CONFLICTED" style={{ background: '#1a1a2e', color: '#e2e8f0' }}>Conflicted</option>
+                        </select>
+                    </div>
 
                     <div className="field" style={{ minWidth: 180 }}>
                         <span>📦</span>
@@ -218,6 +237,16 @@ export default function ChangeRequestsPage() {
                             ))}
                         </select>
                     </div>
+
+                    {statusFilter !== 'ALL' && (
+                        <button
+                            className="btn secondary"
+                            style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                            onClick={() => setStatusFilter('ALL')}
+                        >
+                            Clear filter
+                        </button>
+                    )}
                 </div>
 
                 {loading && <p className="sub">Loading change requests…</p>}
@@ -225,7 +254,11 @@ export default function ChangeRequestsPage() {
                 {!loading && displayCrs.length === 0 && (
                     <div style={{ textAlign: 'center', padding: '32px 0' }}>
                         <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>🎉</div>
-                        <p className="sub">No pending change requests. Everything is up to date.</p>
+                        <p className="sub">
+                            {statusFilter === 'ALL'
+                                ? 'No change requests yet.'
+                                : `No ${statusFilter.toLowerCase()} change requests.`}
+                        </p>
                     </div>
                 )}
 
