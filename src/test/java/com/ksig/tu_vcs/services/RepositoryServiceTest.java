@@ -1,11 +1,8 @@
 package com.ksig.tu_vcs.services;
 
+import com.ksig.tu_vcs.repos.*;
 import com.ksig.tu_vcs.repos.entities.enums.Role;
 import com.ksig.tu_vcs.services.exceptions.ResourceNotFoundException;
-import com.ksig.tu_vcs.repos.AppUserRepository;
-import com.ksig.tu_vcs.repos.ItemRevisionRepository;
-import com.ksig.tu_vcs.repos.RepositoryMemberRepository;
-import com.ksig.tu_vcs.repos.RepositoryRepository;
 import com.ksig.tu_vcs.repos.entities.AppUser;
 import com.ksig.tu_vcs.repos.entities.Repository;
 import com.ksig.tu_vcs.repos.entities.RepositoryMember;
@@ -37,6 +34,9 @@ import java.lang.reflect.Field;
 
 @ExtendWith(MockitoExtension.class)
 class RepositoryServiceTest {
+
+    @Mock
+    private RevisionRepository revisionRepository;
 
     @Mock
     private RepositoryRepository repositoryRepository;
@@ -126,7 +126,7 @@ class RepositoryServiceTest {
         user.setId(userId);
 
         RepositoryMember member = new RepositoryMember();
-        member.setRole(com.ksig.tu_vcs.repos.entities.enums.Role.MASTER);
+        member.setRole(Role.MASTER);
 
         when(userContextUtil.getCurrentUser())
                 .thenReturn(user);
@@ -137,7 +137,7 @@ class RepositoryServiceTest {
 
         repositoryService.deleteRepository(repositoryId, "LOG1");
 
-        verify(repositoryMemberRepository).delete(member);
+        verify(repositoryRepository).deleteById(repositoryId);
     }
 
     @Test
@@ -664,12 +664,15 @@ class RepositoryServiceTest {
     @Test
     void shouldReturnAllRepositories() {
 
+        mockRevisionRepo();
+
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("localhost");
         request.setServerPort(8080);
 
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        RequestContextHolder.setRequestAttributes(
+                new ServletRequestAttributes(request));
 
         Repository repo1 = new Repository();
         repo1.setId(UUID.randomUUID());
@@ -682,7 +685,8 @@ class RepositoryServiceTest {
         when(repositoryRepository.findAll())
                 .thenReturn(List.of(repo1, repo2));
 
-        List<RepositoryOutView> result = repositoryService.findAllRepositories();
+        List<RepositoryOutView> result =
+                repositoryService.findAllRepositories();
 
         assertNotNull(result);
         assertEquals(2, result.size());
@@ -707,12 +711,15 @@ class RepositoryServiceTest {
     @Test
     void shouldReturnUserRepositories() {
 
+        mockRevisionRepo();
+
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("localhost");
         request.setServerPort(8080);
 
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        RequestContextHolder.setRequestAttributes(
+                new ServletRequestAttributes(request));
 
         UUID userId = UUID.randomUUID();
 
@@ -756,12 +763,15 @@ class RepositoryServiceTest {
     @Test
     void shouldReturnRepositoriesMatchingSearch() {
 
+        mockRevisionRepo();
+
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("localhost");
         request.setServerPort(8080);
 
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        RequestContextHolder.setRequestAttributes(
+                new ServletRequestAttributes(request));
 
         String search = "repo";
 
@@ -812,5 +822,10 @@ class RepositoryServiceTest {
         Field field = target.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
         field.set(target, value);
+    }
+
+    private void mockRevisionRepo() {
+        when(revisionRepository.findLatestRevision(any()))
+                .thenReturn(Optional.empty());
     }
 }

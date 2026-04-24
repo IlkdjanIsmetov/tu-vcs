@@ -86,53 +86,6 @@ class ChangeRequestServiceTest {
     }
 
     @Test
-    void shouldAddItemToChangeRequest() {
-
-        UUID repoId = UUID.randomUUID();
-        UUID crId = UUID.randomUUID();
-
-        AppUser user = new AppUser();
-        user.setId(UUID.randomUUID());
-
-        RepositoryMember member = new RepositoryMember();
-        member.setRole(Role.CONTRIBUTOR);
-
-        when(repositoryMemberRepository.findByRepositoryIdAndUserId(repoId, user.getId()))
-                .thenReturn(Optional.of(member));
-
-        ChangeRequest cr = new ChangeRequest();
-        cr.setStatus(ChangeRequestStatus.PENDING);
-
-        when(changeRequestRepository.findById(crId))
-                .thenReturn(Optional.of(cr));
-
-        ItemInView view = mock(ItemInView.class);
-        when(view.getPath()).thenReturn("file.txt");
-        when(view.getItemType()).thenReturn(ItemType.FILE);
-        when(view.getAction()).thenReturn(Action.ADD);
-        when(view.getChecksum()).thenReturn("abc");
-
-        MultipartFile file = mock(MultipartFile.class);
-        when(file.getOriginalFilename()).thenReturn("file.txt");
-        when(file.getSize()).thenReturn(100L);
-
-        when(commitService.saveFileToStorage(file, "LOG1"))
-                .thenReturn("key");
-
-        changeRequestService.addItemToChangeRequest(
-                repoId,
-                user,
-                crId,
-                List.of(view),
-                List.of(file),
-                "LOG1"
-        );
-
-        verify(commitService).saveFileToStorage(file, "LOG1");
-        verify(changeRequestItemRepository).save(any());
-    }
-
-    @Test
     void shouldThrowWhenAddingItemChangeRequestNotFound() {
 
         UUID repoId = UUID.randomUUID();

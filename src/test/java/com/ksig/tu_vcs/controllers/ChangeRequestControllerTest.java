@@ -41,7 +41,6 @@ class ChangeRequestControllerTest {
     void shouldCreateChangeRequest() {
 
         UUID repoId = UUID.randomUUID();
-
         HttpServletRequest request = mock(HttpServletRequest.class);
 
         AppUser user = new AppUser();
@@ -54,8 +53,10 @@ class ChangeRequestControllerTest {
         cr.setId(crId);
 
         when(userContextUtil.getCurrentUser()).thenReturn(user);
-        when(changeRequestService.createChangeRequest(repoId, user, view,"test-log-id"))
-                .thenReturn(cr);
+
+        when(changeRequestService.createChangeRequest(
+                eq(repoId), eq(user), eq(view), anyString()
+        )).thenReturn(cr);
 
         ResponseEntity<UUID> response =
                 changeRequestController.createChangeRequest(repoId, view, request);
@@ -63,7 +64,9 @@ class ChangeRequestControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(crId, response.getBody());
 
-        verify(changeRequestService).createChangeRequest(repoId, user, view,"test-log-id");
+        verify(changeRequestService).createChangeRequest(
+                eq(repoId), eq(user), eq(view), anyString()
+        );
     }
 
     @Test
@@ -132,8 +135,10 @@ class ChangeRequestControllerTest {
         assertEquals("Change request approved", response.getBody());
 
         verify(userContextUtil).getCurrentUser();
+
         verify(changeRequestService)
-                .approveChangeRequest(repoId, crId, user,"test-log-id");
+                .approveChangeRequest(eq(repoId), eq(crId), eq(user), anyString());
+
         verify(request).setAttribute(eq("logId"), any());
     }
 
@@ -156,6 +161,7 @@ class ChangeRequestControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("Change request rejected", response.getBody());
 
-        verify(changeRequestService).rejectChangeRequest(repoId, user, crId,"test-log-id");
+        verify(changeRequestService)
+                .rejectChangeRequest(eq(repoId), eq(user), eq(crId), anyString());
     }
 }
