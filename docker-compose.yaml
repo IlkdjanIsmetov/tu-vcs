@@ -23,14 +23,6 @@ services:
     ports:
       - "5433:5432"
 
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: tu_vcs_mail
-    ports:
-      - "1025:1025"
-      - "8025:8025"
-    restart: always
-
   keycloak:
     image: quay.io/keycloak/keycloak:24.0.1
     command: start-dev
